@@ -384,6 +384,19 @@ tbody tr:hover {
   border-left: 4px solid var(--orange);
 }
 
+.coverage-note div {
+  display: grid;
+  gap: 4px;
+}
+
+.coverage-note strong {
+  font-size: 15px;
+}
+
+.coverage-note span {
+  line-height: 1.55;
+}
+
 @media (max-width: 980px) {
   .top-band,
   .controls-head,

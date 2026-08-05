@@ -71,6 +71,11 @@ type DashboardData = {
 
 const statusOrder = ["ขาด", "ตามเกณฑ์", "เกิน"];
 const riskOrder = ["สูง", "ปานกลาง", "ต่ำ"];
+const statusLabels: Record<string, string> = {
+  ขาด: "ต่ำกว่าเกณฑ์",
+  ตามเกณฑ์: "พอดีเกณฑ์",
+  เกิน: "มากกว่าเกณฑ์",
+};
 
 function numberFormat(value: number) {
   return new Intl.NumberFormat("th-TH").format(value);
@@ -192,7 +197,7 @@ export default function Home() {
   }
 
   const statusRows = statusOrder.map((item) => ({
-    label: item,
+    label: statusLabels[item] ?? item,
     value: data.status_counts[item] ?? 0,
   }));
   const riskRows = riskOrder.map((item) => ({
@@ -220,6 +225,17 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="note-band coverage-note">
+        <div>
+          <strong>อ่านตัวเลขชุดนี้อย่างไร</strong>
+          <span>
+            จำนวนโรงเรียนเป็นจำนวนที่พบในไฟล์ดิบของ 3 เขตเป้าหมาย ส่วนข้อมูลครูคณิตรายบุคคลที่ใช้เทียบเกณฑ์
+            ครอบคลุม {numberFormat(data.teacher_record_coverage.schools_with_teacher_records)} โรงเรียน
+            จาก {numberFormat(data.overview.total_schools)} โรงเรียนใน prototype รอบนี้
+          </span>
+        </div>
+      </section>
+
       <section className="metrics-grid">
         <MetricCard
           label="โรงเรียนทั้งหมด"
@@ -228,21 +244,21 @@ export default function Home() {
           accent="accent-navy"
         />
         <MetricCard
-          label="ครูคณิตจริง"
+          label="ครูคณิตที่มีข้อมูล"
           value={numberFormat(data.overview.actual_math_teachers)}
           hint={`ขั้นต่ำตามเกณฑ์ ${numberFormat(data.overview.required_math_teachers)}`}
           accent="accent-green"
         />
         <MetricCard
-          label="คาดการณ์ขาด 1-5 ปี"
+          label="ครูที่ควรเตรียมเพิ่ม"
           value={numberFormat(data.overview.future_shortage_total)}
-          hint="รวมจำนวนอัตราที่ควรเตรียมรองรับ"
+          hint="คาดการณ์ในช่วง 1-5 ปี"
           accent="accent-orange"
         />
         <MetricCard
-          label="เสี่ยงสูง"
+          label="ต้องติดตามใกล้ชิด"
           value={numberFormat(data.overview.high_risk_schools)}
-          hint="โรงเรียนที่ควรติดตามใกล้ชิด"
+          hint="ระดับความเสี่ยงสูง"
           accent="accent-red"
         />
       </section>
@@ -265,19 +281,19 @@ export default function Home() {
               </div>
               <dl>
                 <div>
-                  <dt>ขาด</dt>
+                  <dt>ต่ำกว่าเกณฑ์</dt>
                   <dd>{numberFormat(row.shortage)}</dd>
                 </div>
                 <div>
-                  <dt>ตามเกณฑ์</dt>
+                  <dt>พอดีเกณฑ์</dt>
                   <dd>{numberFormat(row.met)}</dd>
                 </div>
                 <div>
-                  <dt>เกิน</dt>
+                  <dt>มากกว่าเกณฑ์</dt>
                   <dd>{numberFormat(row.surplus)}</dd>
                 </div>
                 <div>
-                  <dt>คาดขาด</dt>
+                  <dt>คาดว่าต้องเติม</dt>
                   <dd>{numberFormat(row.future_shortage_total)}</dd>
                 </div>
               </dl>
@@ -337,11 +353,11 @@ export default function Home() {
                 <th>โรงเรียน</th>
                 <th>เขต</th>
                 <th>ขนาด</th>
-                <th>ขั้นต่ำ</th>
-                <th>ครูคณิตจริง</th>
+                <th>เกณฑ์ขั้นต่ำ</th>
+                <th>ครูคณิตที่มีข้อมูล</th>
                 <th>สถานะ</th>
-                <th>คาดขาด</th>
-                <th>เสี่ยง</th>
+                <th>คาดว่าต้องเติม</th>
+                <th>ระดับเสี่ยง</th>
               </tr>
             </thead>
             <tbody>
