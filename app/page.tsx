@@ -211,7 +211,9 @@ export default function Home() {
         <div className="title-group">
           <p>ระบบต้นแบบวิเคราะห์อัตรากำลัง</p>
           <h1>แดชบอร์ดครูคณิตศาสตร์</h1>
-          <span>ข้อมูล 3 เขตพื้นที่เป้าหมาย · อัปเดต {data.generated_at}</span>
+          <span>
+            ข้อมูล {numberFormat(data.overview.target_areas)} เขตพื้นที่เป้าหมาย · อัปเดต {data.generated_at}
+          </span>
         </div>
         <div className="model-strip">
           <div>
@@ -229,7 +231,7 @@ export default function Home() {
         <div>
           <strong>อ่านตัวเลขชุดนี้อย่างไร</strong>
           <span>
-            จำนวนโรงเรียนเป็นจำนวนที่พบในไฟล์ดิบของ 3 เขตเป้าหมาย ส่วนข้อมูลครูคณิตรายบุคคลที่ใช้เทียบเกณฑ์
+            จำนวนโรงเรียนเป็นจำนวนที่พบในไฟล์ดิบของ {numberFormat(data.overview.target_areas)} เขตเป้าหมาย ส่วนข้อมูลครูคณิตรายบุคคลที่ใช้เทียบเกณฑ์
             ครอบคลุม {numberFormat(data.teacher_record_coverage.schools_with_teacher_records)} โรงเรียน
             จาก {numberFormat(data.overview.total_schools)} โรงเรียนใน prototype รอบนี้
           </span>

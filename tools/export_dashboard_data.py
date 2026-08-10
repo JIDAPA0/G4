@@ -1,5 +1,6 @@
 import json
 from collections import Counter, defaultdict
+from datetime import date
 from pathlib import Path
 
 import pandas as pd
@@ -81,7 +82,7 @@ def main():
     ][:12]
 
     payload = {
-        "generated_at": "2026-08-06",
+        "generated_at": date.today().isoformat(),
         "overview": {
             "total_schools": int(len(merged)),
             "target_areas": int(merged["area_name"].nunique()),
@@ -108,7 +109,7 @@ def main():
         "teacher_record_coverage": {
             "teacher_rows": int(len(teachers)),
             "schools_with_teacher_records": int(len(teacher_counts)),
-            "note": "ไฟล์ teachers.xlsx มีข้อมูลครูคณิตศาสตร์รายบุคคลเฉพาะ สพม.พะเยา ใน prototype รอบนี้",
+            "note": "ไฟล์ teachers.xlsx มีข้อมูลครูคณิตศาสตร์รายบุคคลจาก 4 สพม. ในพื้นที่เป้าหมาย",
         },
         "metrics": {
             "future": metrics["future_metrics"],
