@@ -326,6 +326,78 @@ button {
   min-width: 300px;
 }
 
+.compare-toolbar {
+  margin-bottom: 14px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.area-checks {
+  min-height: 44px;
+  max-height: 118px;
+  overflow: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 2px;
+}
+
+.area-checks label {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 10px;
+  background: #ffffff;
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.area-checks input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
+.area-checks i {
+  width: 10px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--area-color);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--area-color), #ffffff 76%);
+}
+
+.area-checks span {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compare-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.compare-actions button {
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 12px;
+  background: #ffffff;
+  color: var(--foreground);
+  font-weight: 800;
+  cursor: pointer;
+}
+
 .pie-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -446,6 +518,38 @@ button {
   border-radius: 8px;
 }
 
+.compare-3d-scene {
+  justify-content: flex-start;
+  gap: 20px;
+}
+
+.bar3d-group {
+  min-width: max-content;
+  min-height: 398px;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  align-items: end;
+  justify-items: center;
+}
+
+.bar3d-set {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.bar3d-group > strong {
+  width: 100%;
+  max-width: 280px;
+  min-height: 38px;
+  margin-top: 12px;
+  color: var(--foreground);
+  font-size: 14px;
+  line-height: 1.25;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
 .bar3d-wrap {
   width: 112px;
   min-width: 112px;
@@ -462,6 +566,38 @@ button {
   transform-style: preserve-3d;
   animation: bar-rise 420ms ease-out both;
   animation-delay: var(--delay);
+}
+
+.compare-bar {
+  width: 72px;
+  min-width: 72px;
+  min-height: 350px;
+  grid-template-rows: 32px 1fr auto auto;
+}
+
+.compare-bar .bar3d {
+  width: 42px;
+}
+
+.compare-bar .bar3d::before {
+  width: 42px;
+}
+
+.compare-bar .bar3d::after {
+  right: -16px;
+  width: 16px;
+}
+
+.compare-bar em {
+  width: 100%;
+  min-height: 34px;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 
 .bar3d-wrap strong {
@@ -1037,6 +1173,23 @@ tbody tr:hover {
   .visual-actions button {
     width: 100%;
     min-width: 0;
+  }
+
+  .compare-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .area-checks {
+    max-height: 150px;
+  }
+
+  .area-checks label,
+  .compare-actions button {
+    width: 100%;
+  }
+
+  .compare-actions {
+    justify-content: stretch;
   }
 
   .viz-3d-scene {

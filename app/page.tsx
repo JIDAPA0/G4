@@ -274,6 +274,7 @@ export default function Home() {
   const [selectedSubject, setSelectedSubject] = useState("ทั้งหมด");
   const [area, setArea] = useState("ทั้งหมด");
   const [visualArea, setVisualArea] = useState("ทั้งหมด");
+  const [compareAreas, setCompareAreas] = useState<string[]>([]);
   const [schoolStatus, setSchoolStatus] = useState("ทั้งหมด");
   const [query, setQuery] = useState("");
   const [selectedSchoolCode, setSelectedSchoolCode] = useState<string | null>(null);
@@ -285,6 +286,7 @@ export default function Home() {
       .then((payload: DashboardData) => {
         setData(payload);
         setSelectedGroupId(payload.major_groups[0]?.group_id ?? "science");
+        setCompareAreas(payload.area_summary.slice(0, 3).map((row) => row.area_name));
       });
   }, []);
 
@@ -342,35 +344,47 @@ export default function Home() {
   const visualAreaSchools = visualArea === "ทั้งหมด"
     ? data.schools
     : data.schools.filter((school) => school.area_name === visualArea);
-  const scopedSubjectRows = selectedGroup.subjects.map((subject) => {
-    let totalTeachers = 0;
-    let schoolsWithTeacher = 0;
-    let shortageSchools = 0;
+  const compareAreaOptions = data.area_summary.map((row) => row.area_name);
+  const activeCompareAreas = compareAreas.length ? compareAreas : compareAreaOptions.slice(0, 3);
+  const compareSubjectRows = selectedGroup.subjects.map((subject) => {
+    const areaRows = activeCompareAreas.map((areaName) => {
+      const schoolsInArea = data.schools.filter((school) => school.area_name === areaName);
+      let totalTeachers = 0;
+      let schoolsWithTeacher = 0;
+      let shortageSchools = 0;
 
-    visualAreaSchools.forEach((school) => {
-      const group = school.subject_groups.find((item) => item.group_id === selectedGroup.group_id);
-      const subjectRow = group?.subjects.find((item) => item.subject === subject);
-      const teacherCount = subjectRow?.teacher_count ?? 0;
+      schoolsInArea.forEach((school) => {
+        const group = school.subject_groups.find((item) => item.group_id === selectedGroup.group_id);
+        const subjectRow = group?.subjects.find((item) => item.subject === subject);
+        const teacherCount = subjectRow?.teacher_count ?? 0;
 
-      totalTeachers += teacherCount;
-      if (teacherCount > 0) schoolsWithTeacher += 1;
-      if (subjectRow?.status === "ขาด") shortageSchools += 1;
+        totalTeachers += teacherCount;
+        if (teacherCount > 0) schoolsWithTeacher += 1;
+        if (subjectRow?.status === "ขาด") shortageSchools += 1;
+      });
+
+      return {
+        area_name: areaName,
+        group_id: selectedGroup.group_id,
+        group_name: selectedGroup.group_name,
+        subject,
+        total_teachers: totalTeachers,
+        schools_with_teacher: schoolsWithTeacher,
+        shortage_schools: shortageSchools,
+      };
     });
 
     return {
-      group_id: selectedGroup.group_id,
-      group_name: selectedGroup.group_name,
       subject,
-      total_teachers: totalTeachers,
-      schools_with_teacher: schoolsWithTeacher,
-      shortage_schools: shortageSchools,
+      total_teachers: areaRows.reduce((sum, row) => sum + row.total_teachers, 0),
+      shortage_schools: areaRows.reduce((sum, row) => sum + row.shortage_schools, 0),
+      area_rows: areaRows,
     };
   }).sort((a, b) => b.shortage_schools - a.shortage_schools || b.total_teachers - a.total_teachers);
-  const chartRows = scopedSubjectRows.slice(0, 9);
-  const maxChartShortage = Math.max(1, ...scopedSubjectRows.map((row) => row.shortage_schools));
-  const exportAreaSlug = visualArea === "ทั้งหมด"
-    ? "all-areas"
-    : visualArea.replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, "-");
+  const chartSubjects = compareSubjectRows.slice(0, 6);
+  const chartRows = chartSubjects.flatMap((row) => row.area_rows);
+  const maxChartShortage = Math.max(1, ...chartRows.map((row) => row.shortage_schools));
+  const exportAreaSlug = activeCompareAreas.join("-").replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, "-");
   const areaGroupStatusSlices: PieSlice[] = ["ครบ", "ขาดบางวิชา", "ไม่มีข้อมูล"].map((status) => ({
     label: status,
     value: visualAreaSchools.filter((school) => {
@@ -409,9 +423,18 @@ export default function Home() {
     };
   }).sort((a, b) => b.shortage_slots - a.shortage_slots);
 
+  function toggleCompareArea(areaName: string) {
+    setCompareAreas((current) => {
+      if (current.includes(areaName)) {
+        return current.length === 1 ? current : current.filter((item) => item !== areaName);
+      }
+      return [...current, areaName];
+    });
+  }
+
   function exportSubjectCsv() {
-    const rows = scopedSubjectRows.map((row) => [
-      visualArea,
+    const rows = compareSubjectRows.flatMap((subjectRow) => subjectRow.area_rows).map((row) => [
+      row.area_name,
       row.group_name,
       row.subject,
       row.total_teachers,
@@ -423,8 +446,8 @@ export default function Home() {
   }
 
   function exportSubjectExcel() {
-    const rows = scopedSubjectRows.map((row) => [
-      visualArea,
+    const rows = compareSubjectRows.flatMap((subjectRow) => subjectRow.area_rows).map((row) => [
+      row.area_name,
       row.group_name,
       row.subject,
       row.total_teachers,
@@ -432,7 +455,7 @@ export default function Home() {
       row.shortage_schools,
     ]);
     const html = rowsToExcelTable(
-      `สรุปวิชาเอกย่อย - ${selectedGroup.group_name} - ${visualArea}`,
+      `สรุปวิชาเอกย่อย - ${selectedGroup.group_name} - เทียบพื้นที่`,
       ["พื้นที่", "กลุ่มวิชา", "วิชาเอกย่อย", "จำนวนครู", "โรงเรียนที่มีครู", "โรงเรียนที่ยังไม่มีครู"],
       rows,
     );
@@ -479,30 +502,47 @@ export default function Home() {
   }
 
   function downloadChartPng() {
-    const width = 1200;
+    const groupWidth = Math.max(140, activeCompareAreas.length * 42 + 32);
+    const width = Math.max(1200, 160 + chartSubjects.length * groupWidth);
     const height = 720;
     const max = Math.max(1, ...chartRows.map((row) => row.shortage_schools));
-    const bars = chartRows.map((row, index) => {
-      const palette = chartPalettes[index % chartPalettes.length];
-      const barHeight = Math.max(22, (row.shortage_schools / max) * 390);
-      const x = 90 + index * 120;
-      const y = 540 - barHeight;
+    const bars = chartSubjects.map((subjectRow, subjectIndex) => {
+      const baseX = 70 + subjectIndex * groupWidth;
+      const subjectBars = subjectRow.area_rows.map((row) => {
+        const areaColorIndex = Math.max(0, compareAreaOptions.indexOf(row.area_name));
+        const palette = chartPalettes[areaColorIndex % chartPalettes.length];
+        const barHeight = Math.max(22, (row.shortage_schools / max) * 340);
+        const areaIndex = activeCompareAreas.indexOf(row.area_name);
+        const x = baseX + areaIndex * 42;
+        const y = 540 - barHeight;
+        return `
+          <g>
+            <rect x="${x}" y="${y}" width="28" height="${barHeight}" fill="${palette.front}" />
+            <polygon points="${x},${y} ${x + 12},${y - 12} ${x + 40},${y - 12} ${x + 28},${y}" fill="${palette.top}" />
+            <polygon points="${x + 28},${y} ${x + 40},${y - 12} ${x + 40},${540 - 12} ${x + 28},540" fill="${palette.side}" />
+            <text x="${x + 14}" y="${Math.max(132, y - 20)}" text-anchor="middle" font-size="17" font-weight="800" fill="${palette.side}">${row.shortage_schools}</text>
+          </g>
+        `;
+      }).join("");
       return `
         <g>
-          <rect x="${x}" y="${y}" width="62" height="${barHeight}" fill="${palette.front}" />
-          <polygon points="${x},${y} ${x + 22},${y - 18} ${x + 84},${y - 18} ${x + 62},${y}" fill="${palette.top}" />
-          <polygon points="${x + 62},${y} ${x + 84},${y - 18} ${x + 84},${540 - 18} ${x + 62},540" fill="${palette.side}" />
-          <rect x="${x + 3}" y="${Math.max(128, y - 54)}" width="58" height="34" rx="17" fill="#ffffff" stroke="${palette.front}" stroke-width="3" />
-          <text x="${x + 31}" y="${Math.max(151, y - 31)}" text-anchor="middle" font-size="22" font-weight="800" fill="${palette.side}">${row.shortage_schools}</text>
-          <text x="${x + 31}" y="590" text-anchor="middle" font-size="20" fill="#1c2530">${row.subject}</text>
+          ${subjectBars}
+          <text x="${baseX + Math.max(22, activeCompareAreas.length * 21)}" y="590" text-anchor="middle" font-size="18" font-weight="700" fill="#1c2530">${subjectRow.subject}</text>
         </g>
       `;
+    }).join("");
+    const legend = activeCompareAreas.map((areaName, index) => {
+      const areaColorIndex = Math.max(0, compareAreaOptions.indexOf(areaName));
+      const palette = chartPalettes[areaColorIndex % chartPalettes.length];
+      const x = 60 + index * 180;
+      return `<g><rect x="${x}" y="135" width="16" height="16" fill="${palette.front}" /><text x="${x + 24}" y="149" font-size="16" fill="#657181">${areaName}</text></g>`;
     }).join("");
     const svg = `
       <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
         <rect width="${width}" height="${height}" fill="#f4f6f8" />
         <text x="60" y="70" font-size="34" font-weight="800" fill="#1c2530">กราฟ 3 มิติ: ${selectedGroup.group_name}</text>
-        <text x="60" y="110" font-size="22" fill="#657181">พื้นที่: ${visualArea} · ความสูงแท่ง = จำนวนโรงเรียนที่ยังไม่มีครูวิชาเอกย่อยนั้น</text>
+        <text x="60" y="110" font-size="22" fill="#657181">เทียบพื้นที่ที่ติ๊ก · ความสูงแท่ง = จำนวนโรงเรียนที่ยังไม่มีครูวิชาเอกย่อยนั้น</text>
+        ${legend}
         <line x1="70" y1="540" x2="1130" y2="540" stroke="#9ca8b5" stroke-width="2" />
         ${bars}
       </svg>
@@ -704,7 +744,7 @@ export default function Home() {
             <div className="panel-head split-head">
               <div>
                 <h2>กราฟ 3 มิติรายวิชาเอกย่อย</h2>
-                <span>แท่งสูงหมายถึงจำนวนโรงเรียนในพื้นที่ที่เลือกที่ยังไม่มีครูวิชาเอกนั้น</span>
+                <span>ติ๊กหลายพื้นที่เพื่อเทียบจำนวนโรงเรียนที่ยังไม่มีครูวิชาเอกนั้นในแต่ละเขต</span>
               </div>
               <div className="visual-actions">
                 <select value={selectedGroupId} onChange={(event) => {
@@ -715,45 +755,70 @@ export default function Home() {
                     <option key={group.group_id} value={group.group_id}>{group.group_name}</option>
                   ))}
                 </select>
-                <select value={visualArea} onChange={(event) => setVisualArea(event.target.value)}>
-                  {areas.map((item) => (
-                    <option key={item}>{item}</option>
-                  ))}
-                </select>
                 <button type="button" onClick={downloadChartPng}>ภาพ PNG</button>
                 <button type="button" onClick={exportSubjectCsv}>CSV</button>
                 <button type="button" onClick={exportSubjectExcel}>Excel</button>
               </div>
             </div>
 
-            <div className="viz-3d-scene" aria-label={`กราฟ 3 มิติ ${selectedGroup.group_name} พื้นที่ ${visualArea}`}>
-              {chartRows.map((row, index) => {
-                const height = Math.max(34, (row.shortage_schools / maxChartShortage) * 260);
-                const palette = chartPalettes[index % chartPalettes.length];
-                return (
-                  <button
-                    className="bar3d-wrap"
-                    key={row.subject}
-                    onClick={() => {
-                      setSelectedSubject(row.subject);
-                      setActiveView("schools");
-                    }}
-                    style={{
-                      ["--bar-height" as string]: `${height}px`,
-                      ["--delay" as string]: `${index * 40}ms`,
-                      ["--bar-front" as string]: palette.front,
-                      ["--bar-top" as string]: palette.top,
-                      ["--bar-side" as string]: palette.side,
-                    }}
-                    type="button"
-                  >
-                    <span className="bar3d-value">{numberFormat(row.shortage_schools)}</span>
-                    <span className="bar3d" />
-                    <strong>{row.subject}</strong>
-                    <small>{numberFormat(row.total_teachers)} ครู</small>
-                  </button>
-                );
-              })}
+            <div className="compare-toolbar" aria-label="เลือกพื้นที่สำหรับเทียบในกราฟ 3 มิติ">
+              <div className="area-checks">
+                {compareAreaOptions.map((areaName, index) => (
+                  <label key={areaName}>
+                    <input
+                      checked={activeCompareAreas.includes(areaName)}
+                      onChange={() => toggleCompareArea(areaName)}
+                      type="checkbox"
+                    />
+                    <i style={{ ["--area-color" as string]: chartPalettes[index % chartPalettes.length].front }} />
+                    <span>{areaName}</span>
+                  </label>
+                ))}
+              </div>
+              <div className="compare-actions">
+                <button type="button" onClick={() => setCompareAreas(compareAreaOptions)}>เลือกทุกพื้นที่</button>
+                <button type="button" onClick={() => setCompareAreas(compareAreaOptions.slice(0, 3))}>เลือก 3 พื้นที่แรก</button>
+              </div>
+            </div>
+
+            <div className="viz-3d-scene compare-3d-scene" aria-label={`กราฟ 3 มิติ ${selectedGroup.group_name} เทียบพื้นที่`}>
+              {chartSubjects.map((subjectRow, subjectIndex) => (
+                <div className="bar3d-group" key={subjectRow.subject}>
+                  <div className="bar3d-set">
+                    {subjectRow.area_rows.map((row, areaIndex) => {
+                      const height = Math.max(34, (row.shortage_schools / maxChartShortage) * 250);
+                      const areaColorIndex = Math.max(0, compareAreaOptions.indexOf(row.area_name));
+                      const palette = chartPalettes[areaColorIndex % chartPalettes.length];
+                      return (
+                        <button
+                          className="bar3d-wrap compare-bar"
+                          key={`${row.subject}-${row.area_name}`}
+                          onClick={() => {
+                            setSelectedSubject(row.subject);
+                            setArea(row.area_name);
+                            setActiveView("schools");
+                          }}
+                          style={{
+                            ["--bar-height" as string]: `${height}px`,
+                            ["--delay" as string]: `${(subjectIndex * activeCompareAreas.length + areaIndex) * 28}ms`,
+                            ["--bar-front" as string]: palette.front,
+                            ["--bar-top" as string]: palette.top,
+                            ["--bar-side" as string]: palette.side,
+                          }}
+                          title={`${row.area_name}: ${numberFormat(row.shortage_schools)} โรงเรียนที่ยังไม่มีครู ${row.subject}`}
+                          type="button"
+                        >
+                          <span className="bar3d-value">{numberFormat(row.shortage_schools)}</span>
+                          <span className="bar3d" />
+                          <small>{numberFormat(row.total_teachers)} ครู</small>
+                          <em>{row.area_name.replace("สำนักงานเขตพื้นที่การศึกษา", "สพท.")}</em>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <strong>{subjectRow.subject}</strong>
+                </div>
+              ))}
             </div>
           </section>
 
@@ -816,7 +881,7 @@ export default function Home() {
             <div className="panel-head">
               <div>
                 <h2>ตารางประกอบกราฟ</h2>
-                <span>ข้อมูลชุดเดียวกับกราฟ · พื้นที่: {visualArea}</span>
+                <span>ข้อมูลชุดเดียวกับกราฟ · เทียบ {numberFormat(activeCompareAreas.length)} พื้นที่ที่ติ๊กไว้</span>
               </div>
             </div>
             <div className="table-wrap compact-table balanced-table">
@@ -824,15 +889,17 @@ export default function Home() {
                 <thead>
                   <tr>
                     <th>วิชาเอกย่อย</th>
+                    <th>พื้นที่</th>
                     <th>จำนวนครู</th>
                     <th>โรงเรียนที่มีครู</th>
                     <th>โรงเรียนที่ยังไม่มีครู</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {scopedSubjectRows.map((row) => (
-                    <tr key={row.subject}>
+                  {compareSubjectRows.flatMap((subjectRow) => subjectRow.area_rows).map((row) => (
+                    <tr key={`${row.subject}-${row.area_name}`}>
                       <td><strong>{row.subject}</strong></td>
+                      <td>{row.area_name}</td>
                       <td>{numberFormat(row.total_teachers)}</td>
                       <td>{numberFormat(row.schools_with_teacher)}</td>
                       <td>{numberFormat(row.shortage_schools)}</td>
@@ -1115,8 +1182,9 @@ export default function Home() {
               <>
                 <h2>กราฟแสดงอะไร</h2>
                 <p>
-                  กราฟ 3 มิติแสดงวิชาเอกย่อยของกลุ่มและพื้นที่ที่เลือก ความสูงของแท่งคือจำนวนโรงเรียนใน scope นั้นที่ยังไม่มีครูวิชาเอกนั้นใน record ครู
-                  ตัวเลขบนแท่งคือจำนวนโรงเรียน ส่วนข้อความใต้แท่งคือชื่อวิชาเอกย่อยและจำนวนครูที่พบจริงในพื้นที่ที่เลือก
+                  กราฟ 3 มิติแสดงวิชาเอกย่อยของกลุ่มที่เลือก และแยกแท่งตามพื้นที่ที่ติ๊กไว้เพื่อเทียบกัน
+                  ความสูงของแท่งคือจำนวนโรงเรียนในพื้นที่นั้นที่ยังไม่มีครูวิชาเอกนั้นใน record ครู
+                  ตัวเลขบนแท่งคือจำนวนโรงเรียน ส่วนข้อความใต้แท่งบอกจำนวนครูที่พบจริงในพื้นที่นั้น
                 </p>
                 <p>
                   Pie Chart รายพื้นที่ใช้โรงเรียนในเขตที่เลือกเป็นฐาน: วงแรกบอกสถานะครบ/ขาดบางวิชาของกลุ่มวิชาที่เลือก
