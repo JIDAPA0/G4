@@ -97,6 +97,7 @@ type DashboardData = {
 const navItems = [
   { id: "overview", label: "ภาพรวม" },
   { id: "groups", label: "กลุ่มวิชา" },
+  { id: "visuals", label: "กราฟ 3 มิติ" },
   { id: "schools", label: "รายโรงเรียน" },
   { id: "notes", label: "ข้อมูล/ข้อจำกัด" },
 ] as const;
@@ -146,6 +147,47 @@ function ProgressBar({ value, max, tone }: { value: number; max: number; tone: s
   );
 }
 
+function downloadBlob(fileName: string, mimeType: string, content: BlobPart) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function csvCell(value: string | number) {
+  const text = String(value ?? "");
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function rowsToCsv(headers: string[], rows: (string | number)[][]) {
+  return [
+    headers.map(csvCell).join(","),
+    ...rows.map((row) => row.map(csvCell).join(",")),
+  ].join("\n");
+}
+
+function rowsToExcelTable(title: string, headers: string[], rows: (string | number)[][]) {
+  const cell = (value: string | number, tag = "td") =>
+    `<${tag}>${String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</${tag}>`;
+  return `
+    <html>
+      <head><meta charset="utf-8" /></head>
+      <body>
+        <table>
+          <caption>${title}</caption>
+          <thead><tr>${headers.map((header) => cell(header, "th")).join("")}</tr></thead>
+          <tbody>${rows.map((row) => `<tr>${row.map((item) => cell(item)).join("")}</tr>`).join("")}</tbody>
+        </table>
+      </body>
+    </html>
+  `;
+}
+
 export default function Home() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [activeView, setActiveView] = useState<(typeof navItems)[number]["id"]>("overview");
@@ -154,6 +196,7 @@ export default function Home() {
   const [area, setArea] = useState("ทั้งหมด");
   const [schoolStatus, setSchoolStatus] = useState("ทั้งหมด");
   const [query, setQuery] = useState("");
+  const [explainTopic, setExplainTopic] = useState<"visual" | "data" | "export" | null>(null);
 
   useEffect(() => {
     fetch("/dashboard-data.json")
@@ -212,6 +255,106 @@ export default function Home() {
   const completionRate = percent(data.overview.complete_group_school_pairs, data.overview.total_group_school_pairs);
   const maxGroupShortage = Math.max(1, ...data.major_groups.map((group) => group.shortage_subject_slots));
   const maxSubjectShortage = Math.max(1, ...selectedSubjectRows.map((row) => row.shortage_schools));
+  const visualRows = selectedSubjectRows.length
+    ? selectedSubjectRows
+    : data.top_subject_shortage.filter((row) => row.group_id === selectedGroup.group_id);
+  const chartRows = visualRows.slice(0, 9);
+
+  function exportSubjectCsv() {
+    const rows = selectedSubjectRows.map((row) => [
+      row.group_name,
+      row.subject,
+      row.total_teachers,
+      row.schools_with_teacher,
+      row.shortage_schools,
+    ]);
+    const csv = rowsToCsv(["กลุ่มวิชา", "วิชาเอกย่อย", "จำนวนครู", "โรงเรียนที่มีครู", "โรงเรียนที่ยังไม่มีครู"], rows);
+    downloadBlob(`subject-major-${selectedGroup.group_id}.csv`, "text/csv;charset=utf-8", `\uFEFF${csv}`);
+  }
+
+  function exportSubjectExcel() {
+    const rows = selectedSubjectRows.map((row) => [
+      row.group_name,
+      row.subject,
+      row.total_teachers,
+      row.schools_with_teacher,
+      row.shortage_schools,
+    ]);
+    const html = rowsToExcelTable(
+      `สรุปวิชาเอกย่อย - ${selectedGroup.group_name}`,
+      ["กลุ่มวิชา", "วิชาเอกย่อย", "จำนวนครู", "โรงเรียนที่มีครู", "โรงเรียนที่ยังไม่มีครู"],
+      rows,
+    );
+    downloadBlob(`subject-major-${selectedGroup.group_id}.xls`, "application/vnd.ms-excel;charset=utf-8", html);
+  }
+
+  function exportSchoolCsv() {
+    const rows = filteredSchools.map((school) => {
+      const group = school.subject_groups.find((item) => item.group_id === selectedGroup.group_id);
+      return [
+        school.school_code,
+        school.school_name,
+        school.area_name,
+        school.teacher_records,
+        group?.group_name ?? selectedGroup.group_name,
+        group?.actual_teachers ?? 0,
+        group?.covered_subjects ?? 0,
+        group?.required_subjects ?? 0,
+        group?.status ?? "ไม่มีข้อมูล",
+        (group?.missing_subjects ?? []).join(" | "),
+      ];
+    });
+    const csv = rowsToCsv(
+      ["รหัสโรงเรียน", "โรงเรียน", "เขต", "ครูทั้งหมดในไฟล์", "กลุ่มวิชา", "ครูกลุ่มนี้", "วิชาที่มี", "วิชาทั้งหมด", "สถานะ", "วิชาที่ต้องเติม"],
+      rows,
+    );
+    downloadBlob(`schools-${selectedGroup.group_id}.csv`, "text/csv;charset=utf-8", `\uFEFF${csv}`);
+  }
+
+  function downloadChartPng() {
+    const width = 1200;
+    const height = 720;
+    const max = Math.max(1, ...chartRows.map((row) => row.shortage_schools));
+    const bars = chartRows.map((row, index) => {
+      const barHeight = Math.max(22, (row.shortage_schools / max) * 390);
+      const x = 90 + index * 120;
+      const y = 540 - barHeight;
+      return `
+        <g>
+          <rect x="${x}" y="${y}" width="62" height="${barHeight}" fill="#b5413d" />
+          <polygon points="${x},${y} ${x + 22},${y - 18} ${x + 84},${y - 18} ${x + 62},${y}" fill="#d06a37" />
+          <polygon points="${x + 62},${y} ${x + 84},${y - 18} ${x + 84},${540 - 18} ${x + 62},540" fill="#7d2f35" />
+          <text x="${x + 31}" y="${y - 28}" text-anchor="middle" font-size="24" font-weight="700" fill="#1c2530">${row.shortage_schools}</text>
+          <text x="${x + 31}" y="590" text-anchor="middle" font-size="20" fill="#1c2530">${row.subject}</text>
+        </g>
+      `;
+    }).join("");
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+        <rect width="${width}" height="${height}" fill="#f4f6f8" />
+        <text x="60" y="70" font-size="34" font-weight="800" fill="#1c2530">กราฟ 3 มิติ: ${selectedGroup.group_name}</text>
+        <text x="60" y="110" font-size="22" fill="#657181">ความสูงแท่ง = จำนวนโรงเรียนที่ยังไม่มีครูวิชาเอกย่อยนั้นในข้อมูล</text>
+        <line x1="70" y1="540" x2="1130" y2="540" stroke="#9ca8b5" stroke-width="2" />
+        ${bars}
+      </svg>
+    `;
+    const image = new Image();
+    const svgBlob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(svgBlob);
+    image.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const context = canvas.getContext("2d");
+      if (!context) return;
+      context.drawImage(image, 0, 0);
+      canvas.toBlob((blob) => {
+        if (blob) downloadBlob(`chart-3d-${selectedGroup.group_id}.png`, "image/png", blob);
+        URL.revokeObjectURL(url);
+      });
+    };
+    image.src = url;
+  }
 
   return (
     <main className="dashboard">
@@ -242,6 +385,13 @@ export default function Home() {
           </button>
         ))}
       </nav>
+
+      <div className="explain-strip">
+        <span>ต้องการดูที่มาหรือวิธีคำนวณ?</span>
+        <button type="button" onClick={() => setExplainTopic("data")}>แหล่งข้อมูล</button>
+        <button type="button" onClick={() => setExplainTopic("visual")}>กราฟแสดงอะไร</button>
+        <button type="button" onClick={() => setExplainTopic("export")}>การส่งออกไฟล์</button>
+      </div>
 
       {activeView === "overview" && (
         <>
@@ -379,6 +529,97 @@ export default function Home() {
         </section>
       )}
 
+      {activeView === "visuals" && (
+        <section className="visual-layout">
+          <section className="panel visual-panel">
+            <div className="panel-head split-head">
+              <div>
+                <h2>กราฟ 3 มิติรายวิชาเอกย่อย</h2>
+                <span>แท่งสูงหมายถึงมีโรงเรียนจำนวนมากที่ยังไม่มีครูวิชาเอกนั้นในข้อมูล</span>
+              </div>
+              <div className="visual-actions">
+                <select value={selectedGroupId} onChange={(event) => {
+                  setSelectedGroupId(event.target.value);
+                  setSelectedSubject("ทั้งหมด");
+                }}>
+                  {data.major_groups.map((group) => (
+                    <option key={group.group_id} value={group.group_id}>{group.group_name}</option>
+                  ))}
+                </select>
+                <button type="button" onClick={downloadChartPng}>ภาพ PNG</button>
+                <button type="button" onClick={exportSubjectCsv}>CSV</button>
+                <button type="button" onClick={exportSubjectExcel}>Excel</button>
+              </div>
+            </div>
+
+            <div className="viz-3d-scene" aria-label={`กราฟ 3 มิติ ${selectedGroup.group_name}`}>
+              {chartRows.map((row, index) => {
+                const height = Math.max(34, (row.shortage_schools / maxSubjectShortage) * 260);
+                return (
+                  <button
+                    className="bar3d-wrap"
+                    key={row.subject}
+                    onClick={() => {
+                      setSelectedSubject(row.subject);
+                      setActiveView("schools");
+                    }}
+                    style={{ ["--bar-height" as string]: `${height}px`, ["--delay" as string]: `${index * 40}ms` }}
+                    type="button"
+                  >
+                    <span className="bar3d-value">{numberFormat(row.shortage_schools)}</span>
+                    <span className="bar3d" />
+                    <strong>{row.subject}</strong>
+                    <small>{numberFormat(row.total_teachers)} ครู</small>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="panel">
+            <div className="panel-head">
+              <div>
+                <h2>ตารางประกอบกราฟ</h2>
+                <span>ข้อมูลชุดเดียวกับกราฟ สามารถนำไปใช้ต่อได้</span>
+              </div>
+            </div>
+            <div className="table-wrap compact-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>วิชาเอกย่อย</th>
+                    <th>จำนวนครู</th>
+                    <th>โรงเรียนที่มีครู</th>
+                    <th>โรงเรียนที่ยังไม่มีครู</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedSubjectRows.map((row) => (
+                    <tr key={row.subject}>
+                      <td><strong>{row.subject}</strong></td>
+                      <td>{numberFormat(row.total_teachers)}</td>
+                      <td>{numberFormat(row.schools_with_teacher)}</td>
+                      <td>{numberFormat(row.shortage_schools)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section className="panel export-panel">
+            <h2>ส่งออกข้อมูลรายโรงเรียน</h2>
+            <p>
+              ปุ่มนี้ส่งออกตารางโรงเรียนตามตัวกรองปัจจุบัน พร้อมจำนวนครูกลุ่มที่เลือก สถานะครบ/ขาดบางวิชา และรายชื่อวิชาที่ต้องเติม
+            </p>
+            <div className="export-actions">
+              <button type="button" onClick={exportSchoolCsv}>ดาวน์โหลด CSV รายโรงเรียน</button>
+              <button type="button" onClick={() => setActiveView("schools")}>ไปดูตารางรายโรงเรียน</button>
+            </div>
+          </section>
+        </section>
+      )}
+
       {activeView === "schools" && (
         <section className="panel">
           <div className="panel-head controls-head">
@@ -511,6 +752,52 @@ export default function Home() {
             </div>
           </article>
         </section>
+      )}
+
+      {explainTopic && (
+        <div className="modal-backdrop" role="presentation" onClick={() => setExplainTopic(null)}>
+          <section className="explain-modal" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+            <button className="modal-close" type="button" onClick={() => setExplainTopic(null)}>ปิด</button>
+            {explainTopic === "data" && (
+              <>
+                <h2>ใช้ข้อมูลจากไหน</h2>
+                <p>
+                  ข้อมูลหลักมาจากไฟล์ครูรายบุคคล `teachers.xlsx` ที่แปลงจากไฟล์ครูดิบ และใช้ `กลุ่มวิชาเอก.pdf`
+                  เป็นรายการมาตรฐานสำหรับจัดกลุ่มวิชาเอก 8 กลุ่ม และวิชาเอกย่อย 20 รายการ
+                </p>
+                <p>
+                  ระบบนับเฉพาะแถวที่เป็นตำแหน่งครู จากนั้นอ่านคอลัมน์กลุ่มวิชาเอกตามมาตรฐาน สาขาวิชาเอกที่บรรจุ และวุฒิการศึกษา
+                  เพื่อ map เป็นกลุ่มวิชาและวิชาเอกย่อย เช่น เคมี ฟิสิกส์ ชีววิทยา เทคโนโลยี หรือคอมพิวเตอร์
+                </p>
+              </>
+            )}
+            {explainTopic === "visual" && (
+              <>
+                <h2>กราฟแสดงอะไร</h2>
+                <p>
+                  กราฟ 3 มิติแสดงวิชาเอกย่อยของกลุ่มที่เลือก ความสูงของแท่งคือจำนวนโรงเรียนที่ยังไม่มีครูวิชาเอกนั้นใน record ครู
+                  ตัวเลขบนแท่งคือจำนวนโรงเรียน ส่วนข้อความใต้แท่งคือชื่อวิชาเอกย่อยและจำนวนครูที่พบจริง
+                </p>
+                <p>
+                  การคำนวณช่องว่างรายวิชาใช้ baseline ว่า หากโรงเรียนมีข้อมูลครูแล้ว แต่ไม่มีครูในวิชาเอกย่อยนั้นเลย จะนับเป็น 1 ช่องว่างที่ควรติดตาม
+                  วิธีนี้ใช้เพื่อชี้เป้าเบื้องต้น ไม่ใช่เกณฑ์จัดสรรอัตรากำลังขั้นสุดท้าย
+                </p>
+              </>
+            )}
+            {explainTopic === "export" && (
+              <>
+                <h2>ส่งออกไปใช้ต่ออย่างไร</h2>
+                <p>
+                  ปุ่ม CSV จะได้ไฟล์ข้อความเปิดต่อใน Excel, Google Sheets, BI tools หรือระบบวิเคราะห์อื่นได้ ส่วนปุ่ม Excel จะได้ไฟล์ `.xls`
+                  แบบตารางที่ Excel เปิดได้ทันทีโดยคงหัวคอลัมน์ภาษาไทยไว้
+                </p>
+                <p>
+                  ปุ่มภาพ PNG สร้างภาพจากข้อมูลกราฟชุดปัจจุบัน เหมาะสำหรับนำไปใส่รายงาน สไลด์ หรือเอกสารประกอบการประชุม
+                </p>
+              </>
+            )}
+          </section>
+        </div>
       )}
     </main>
   );
