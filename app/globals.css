@@ -159,7 +159,9 @@ button {
 
 .explain-strip button,
 .visual-actions button,
-.export-actions button {
+.export-actions button,
+.table-action,
+.detail-head button {
   min-height: 36px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -172,7 +174,9 @@ button {
 
 .explain-strip button:hover,
 .visual-actions button:hover,
-.export-actions button:hover {
+.export-actions button:hover,
+.table-action:hover,
+.detail-head button:hover {
   border-color: var(--blue);
 }
 
@@ -664,7 +668,7 @@ button {
 
 table {
   width: 100%;
-  min-width: 1220px;
+  min-width: 1320px;
   border-collapse: collapse;
   font-size: 14px;
 }
@@ -696,6 +700,10 @@ tbody tr:hover {
 .school-code-cell {
   color: #455466;
   font-weight: 800;
+  white-space: nowrap;
+}
+
+.table-action {
   white-space: nowrap;
 }
 
@@ -804,6 +812,77 @@ tbody tr:hover {
   box-shadow: 0 30px 70px rgba(11, 20, 31, 0.28);
 }
 
+.detail-modal {
+  width: min(1180px, 96vw);
+  max-height: min(820px, 92vh);
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 24px;
+  box-shadow: 0 30px 70px rgba(11, 20, 31, 0.28);
+}
+
+.detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.detail-head h2 {
+  margin: 0 0 6px;
+  font-size: 26px;
+}
+
+.detail-head p {
+  margin: 8px 0 0;
+  color: var(--muted);
+}
+
+.detail-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.detail-summary-grid article {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #fbfcfd;
+}
+
+.detail-summary-grid strong,
+.detail-summary-grid span,
+.detail-summary-grid small {
+  display: block;
+}
+
+.detail-summary-grid span {
+  margin-top: 8px;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.detail-summary-grid small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.teacher-table table {
+  min-width: 900px;
+}
+
+.detail-note {
+  margin: 12px 0 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
 .explain-modal h2 {
   margin: 0 0 12px;
   font-size: 24px;
@@ -880,5 +959,17 @@ tbody tr:hover {
 
   .pie-chart {
     margin: 0 auto;
+  }
+
+  .detail-head {
+    flex-direction: column;
+  }
+
+  .detail-head button {
+    width: 100%;
+  }
+
+  .detail-summary-grid {
+    grid-template-columns: 1fr;
   }
 }

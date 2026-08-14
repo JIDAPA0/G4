@@ -19,6 +19,14 @@ type SchoolSubjectGroup = {
   subjects: SubjectRow[];
 };
 
+type TeacherRosterRow = {
+  teacher_id: string;
+  subject_group_id: string;
+  subject_group: string;
+  subject_major: string;
+  teacher_major: string;
+};
+
 type SchoolRow = {
   school_code: string;
   school_name: string;
@@ -31,6 +39,7 @@ type SchoolRow = {
   future_shortage_prediction: number;
   sudden_shortage_risk_level: "สูง" | "ปานกลาง" | "ต่ำ" | "ไม่ระบุ";
   subject_groups: SchoolSubjectGroup[];
+  teacher_roster: TeacherRosterRow[];
 };
 
 type MajorGroup = {
@@ -267,6 +276,7 @@ export default function Home() {
   const [visualArea, setVisualArea] = useState("ทั้งหมด");
   const [schoolStatus, setSchoolStatus] = useState("ทั้งหมด");
   const [query, setQuery] = useState("");
+  const [selectedSchoolCode, setSelectedSchoolCode] = useState<string | null>(null);
   const [explainTopic, setExplainTopic] = useState<"visual" | "data" | "export" | null>(null);
 
   useEffect(() => {
@@ -330,6 +340,9 @@ export default function Home() {
     ? selectedSubjectRows
     : data.top_subject_shortage.filter((row) => row.group_id === selectedGroup.group_id);
   const chartRows = visualRows.slice(0, 9);
+  const selectedSchool = selectedSchoolCode
+    ? data.schools.find((school) => school.school_code === selectedSchoolCode) ?? null
+    : null;
   const visualAreaSchools = visualArea === "ทั้งหมด"
     ? data.schools
     : data.schools.filter((school) => school.area_name === visualArea);
@@ -420,6 +433,22 @@ export default function Home() {
       rows,
     );
     downloadBlob(`schools-${selectedGroup.group_id}.csv`, "text/csv;charset=utf-8", `\uFEFF${csv}`);
+  }
+
+  function exportTeacherRosterCsv(school: SchoolRow) {
+    const rows = school.teacher_roster.map((teacher) => [
+      school.school_code,
+      school.school_name,
+      teacher.teacher_id,
+      teacher.subject_group,
+      teacher.subject_major,
+      teacher.teacher_major,
+    ]);
+    const csv = rowsToCsv(
+      ["รหัสโรงเรียน", "ชื่อโรงเรียน", "รหัสครู/ตำแหน่ง", "กลุ่มวิชา", "วิชาเอกย่อย", "วิชาเอกต้นทางในไฟล์ครู"],
+      rows,
+    );
+    downloadBlob(`teacher-roster-${school.school_code}.csv`, "text/csv;charset=utf-8", `\uFEFF${csv}`);
   }
 
   function downloadChartPng() {
@@ -890,6 +919,7 @@ export default function Home() {
                   <th>สถานะ</th>
                   <th>วิชาที่ต้องเติม</th>
                   <th>เสี่ยงเดิม</th>
+                  <th>บัญชีครู</th>
                 </tr>
               </thead>
               <tbody>
@@ -919,6 +949,11 @@ export default function Home() {
                       </td>
                       <td>
                         <span className={`pill ${statusClass(school.sudden_shortage_risk_level)}`}>{school.sudden_shortage_risk_level}</span>
+                      </td>
+                      <td>
+                        <button className="table-action" type="button" onClick={() => setSelectedSchoolCode(school.school_code)}>
+                          ดูครู {numberFormat(school.teacher_roster.length)}
+                        </button>
                       </td>
                     </tr>
                   );
@@ -1007,6 +1042,59 @@ export default function Home() {
                 </p>
               </>
             )}
+          </section>
+        </div>
+      )}
+
+      {selectedSchool && (
+        <div className="modal-backdrop" role="presentation" onClick={() => setSelectedSchoolCode(null)}>
+          <section className="detail-modal" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+            <button className="modal-close" type="button" onClick={() => setSelectedSchoolCode(null)}>ปิด</button>
+            <div className="detail-head">
+              <div>
+                <h2>{selectedSchool.school_name}</h2>
+                <span className="mono">รหัสโรงเรียน {selectedSchool.school_code}</span>
+                <p>{selectedSchool.area_name} · {numberFormat(selectedSchool.teacher_roster.length)} records ครูในไฟล์</p>
+              </div>
+              <button type="button" onClick={() => exportTeacherRosterCsv(selectedSchool)}>ดาวน์โหลด CSV บัญชีครู</button>
+            </div>
+
+            <div className="detail-summary-grid">
+              {selectedSchool.subject_groups.map((group) => (
+                <article key={group.group_id}>
+                  <strong>{group.group_name.replace("กลุ่มวิชา", "")}</strong>
+                  <span>{numberFormat(group.actual_teachers)} ครู</span>
+                  <small>{group.status}</small>
+                </article>
+              ))}
+            </div>
+
+            <div className="table-wrap teacher-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>รหัสครู/ตำแหน่ง</th>
+                    <th>กลุ่มวิชา</th>
+                    <th>วิชาเอกย่อย</th>
+                    <th>วิชาเอกต้นทางในไฟล์ครู</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedSchool.teacher_roster.map((teacher, index) => (
+                    <tr key={`${teacher.teacher_id}-${index}`}>
+                      <td className="mono school-code-cell">{teacher.teacher_id || "ไม่ระบุ"}</td>
+                      <td>{teacher.subject_group}</td>
+                      <td><strong>{teacher.subject_major}</strong></td>
+                      <td>{teacher.teacher_major}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <p className="detail-note">
+              ใช้รหัสครู/ตำแหน่งนี้เพื่อค้นย้อนกลับในไฟล์ครูต้นทางได้ โดยหน้านี้ไม่แสดงชื่อบุคคล วันเกิด หรือข้อมูลส่วนบุคคลอื่น
+            </p>
           </section>
         </div>
       )}

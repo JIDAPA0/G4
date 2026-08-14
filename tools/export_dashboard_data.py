@@ -95,6 +95,8 @@ def main():
     teachers["subject_group_id"] = teachers["subject_group_id"].fillna("other")
     teachers["subject_group"] = teachers["subject_group"].fillna("ไม่เข้ากลุ่มมาตรฐาน")
     teachers["subject_major"] = teachers["subject_major"].fillna("ไม่ระบุ")
+    teachers["teacher_id"] = teachers["teacher_id"].fillna("").map(normalize_code)
+    teachers["teacher_major"] = teachers["teacher_major"].fillna("ไม่ระบุ")
 
     merged = schools.merge(analysis, on="school_code", how="left")
     merged["future_shortage_prediction"] = merged["future_shortage_prediction"].fillna(0).astype(int)
@@ -108,6 +110,15 @@ def main():
     school_teacher_counts = teachers.groupby("school_code").size().to_dict()
     teacher_group_counts = teachers.groupby(["school_code", "subject_group_id"]).size().to_dict()
     teacher_subject_counts = teachers.groupby(["school_code", "subject_group_id", "subject_major"]).size().to_dict()
+    teacher_roster = defaultdict(list)
+    for teacher in teachers.sort_values(["school_code", "subject_group", "subject_major", "teacher_id"]).to_dict(orient="records"):
+        teacher_roster[normalize_code(teacher["school_code"])].append({
+            "teacher_id": normalize_code(teacher.get("teacher_id")),
+            "subject_group_id": normalize_code(teacher.get("subject_group_id")),
+            "subject_group": teacher.get("subject_group", "ไม่ระบุ"),
+            "subject_major": teacher.get("subject_major", "ไม่ระบุ"),
+            "teacher_major": teacher.get("teacher_major", "ไม่ระบุ"),
+        })
 
     subject_summary_map = {}
     group_summary = []
@@ -243,6 +254,7 @@ def main():
             "future_shortage_prediction": safe_int(row["future_shortage_prediction"]),
             "sudden_shortage_risk_level": row["sudden_shortage_risk_level"],
             "subject_groups": subject_groups,
+            "teacher_roster": teacher_roster.get(school_code, []),
             "missing_subject_preview": all_missing_subjects[:8],
         })
 
