@@ -477,6 +477,7 @@ export default function Home() {
         school.school_code,
         school.school_name,
         school.area_name,
+        school.school_size,
         school.teacher_records,
         group?.group_name ?? selectedGroup.group_name,
         group?.actual_teachers ?? 0,
@@ -484,10 +485,11 @@ export default function Home() {
         group?.required_subjects ?? 0,
         group?.status ?? "ไม่มีข้อมูล",
         (group?.missing_subjects ?? []).join(" | "),
+        school.sudden_shortage_risk_level,
       ];
     });
     const csv = rowsToCsv(
-      ["รหัสโรงเรียน", "โรงเรียน", "เขต", "จำนวนข้อมูลครูในไฟล์", "กลุ่มวิชา", "จำนวนครูในกลุ่มนี้", "วิชาที่พบครู", "วิชาทั้งหมด", "สถานะ", "วิชาที่ต้องติดตาม"],
+      ["รหัสโรงเรียน", "โรงเรียน", "เขต", "ขนาดโรงเรียน", "จำนวนข้อมูลครูในไฟล์", "กลุ่มวิชา", "จำนวนครูในกลุ่มนี้", "วิชาที่พบครู", "วิชาทั้งหมด", "สถานะ", "วิชาที่ต้องติดตาม", "ระดับความเสี่ยงจากโมเดลเดิม"],
       rows,
     );
     downloadBlob(`schools-${selectedGroup.group_id}.csv`, "text/csv;charset=utf-8", `\uFEFF${csv}`);
@@ -632,9 +634,9 @@ export default function Home() {
               tone="accent-purple"
             />
             <MetricCard
-              label="ความเสี่ยงสูงเดิม"
+              label="โรงเรียนเสี่ยงสูงจากโมเดลเดิม"
               value={numberFormat(data.overview.high_risk_schools)}
-              hint="ใช้ร่วมกับโมเดลเดิมสำหรับจัดลำดับติดตาม"
+              hint="ตัวช่วยจัดลำดับตรวจสอบ ไม่ใช่ผลยืนยัน"
               tone="accent-red"
             />
           </section>
@@ -1021,12 +1023,13 @@ export default function Home() {
                   <th>รหัสโรงเรียน</th>
                   <th>ชื่อโรงเรียน</th>
                   <th>เขต</th>
+                  <th>ขนาดโรงเรียน</th>
                   <th>ข้อมูลครูในไฟล์</th>
                   <th>ครูที่พบในกลุ่มนี้</th>
                   <th>ครบวิชาย่อย</th>
                   <th>สถานะ</th>
-                  <th>วิชาที่ต้องเติม</th>
-                  <th>เสี่ยงเดิม</th>
+                  <th>วิชาที่ควรติดตาม</th>
+                  <th>ความเสี่ยงจากโมเดลเดิม</th>
                   <th>บัญชีครู</th>
                 </tr>
               </thead>
@@ -1043,6 +1046,7 @@ export default function Home() {
                         <strong>{school.school_name}</strong>
                       </td>
                       <td>{school.area_name}</td>
+                      <td>{school.school_size || "ไม่ระบุ"}</td>
                       <td>{numberFormat(school.teacher_records)}</td>
                       <td>{numberFormat(group?.actual_teachers ?? 0)}</td>
                       <td>{numberFormat(group?.covered_subjects ?? 0)} / {numberFormat(group?.required_subjects ?? 0)}</td>
@@ -1091,7 +1095,7 @@ export default function Home() {
               </div>
               <div>
                 <strong>รายโรงเรียน</strong>
-                <span>ใช้ค้นโรงเรียน เลือกกลุ่มวิชา ดูวิชาที่ต้องเติม และเปิดบัญชีครูแบบรหัสปิดบังรายโรงเรียน</span>
+                <span>ใช้ค้นโรงเรียน เลือกกลุ่มวิชา ดูวิชาที่ควรติดตาม และเปิดบัญชีครูแบบรหัสปิดบังรายโรงเรียน</span>
               </div>
             </div>
           </article>
@@ -1129,7 +1133,7 @@ export default function Home() {
           <article className="panel model-panel">
             <h2>โมเดลและตัวชี้วัด</h2>
             <p>
-              ค่า “ความเสี่ยงสูงเดิม” และผลคาดการณ์บางส่วนมาจากโมเดลที่พัฒนาจากชุดข้อมูลเดิม เพื่อช่วยจัดลำดับโรงเรียนที่ควรติดตาม
+              ค่า “ความเสี่ยงจากโมเดลเดิม” และผลคาดการณ์บางส่วนมาจากโมเดลที่พัฒนาจากชุดข้อมูลเดิม เพื่อช่วยจัดลำดับโรงเรียนที่ควรติดตาม
               ไม่ใช่ผลตัดสินเชิงนโยบายอัตโนมัติ
             </p>
             <div className="model-grid">
@@ -1162,7 +1166,7 @@ export default function Home() {
                 <div className="area-card" key={row.area_name}>
                   <strong>{row.area_name}</strong>
                   <span>{numberFormat(row.schools)} โรงเรียน · {teacherRecordText(row.teacher_records)}</span>
-                  <small>ครอบคลุม {numberFormat(row.covered_schools)} โรงเรียน · เสี่ยงสูง {numberFormat(row.high_risk)}</small>
+                  <small>ครอบคลุม {numberFormat(row.covered_schools)} โรงเรียน · โมเดลเดิม: เสี่ยงสูง {numberFormat(row.high_risk)}</small>
                 </div>
               ))}
             </div>
