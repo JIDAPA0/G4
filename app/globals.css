@@ -781,6 +781,71 @@ tbody tr:hover {
   margin-top: 6px;
 }
 
+.guide-panel,
+.source-panel,
+.model-panel {
+  grid-column: 1 / -1;
+}
+
+.guide-grid,
+.model-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.model-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.guide-grid div,
+.model-grid div {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: #fbfcfd;
+}
+
+.guide-grid strong,
+.guide-grid span,
+.model-grid strong,
+.model-grid span {
+  display: block;
+}
+
+.guide-grid span,
+.model-grid span {
+  margin-top: 8px;
+  color: #3e4b59;
+  line-height: 1.55;
+}
+
+.source-list {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.source-list div {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: #fbfcfd;
+}
+
+.source-list dt {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-weight: 900;
+  color: var(--ink);
+}
+
+.source-list dd {
+  margin: 8px 0 0;
+  color: #3e4b59;
+  line-height: 1.55;
+}
+
 .export-panel p {
   max-width: 900px;
 }
@@ -917,6 +982,9 @@ tbody tr:hover {
   .content-grid,
   .group-summary-band,
   .notes-grid,
+  .guide-grid,
+  .model-grid,
+  .source-list,
   .visual-layout,
   .area-insight-strip,
   .pie-grid,
