@@ -1055,7 +1055,7 @@ export default function Home() {
                       </td>
                       <td>
                         <div className="chip-line">
-                          {missing.length ? missing.slice(0, 4).map((subject) => <span className="chip" key={subject}>{subject}</span>) : <span className="subtle">ไม่มีช่องว่างในเงื่อนไขนี้</span>}
+                          {missing.length ? missing.slice(0, 4).map((subject) => <span className="chip" key={subject}>{subject}</span>) : <span className="subtle">ไม่พบวิชาที่ต้องติดตามตามตัวกรองนี้</span>}
                           {missing.length > 4 && <span className="chip muted-chip">+{numberFormat(missing.length - 4)}</span>}
                         </div>
                       </td>
