@@ -119,20 +119,20 @@ const navItems = [
 
 const schoolStatusOrder = ["ทั้งหมด", "ขาดบางวิชา", "ครบ", "ไม่มีข้อมูล"];
 const chartPalettes = [
-  { front: "#2f6f91", top: "#6fa3c7", side: "#1f4a66" },
-  { front: "#2f7d5c", top: "#72b892", side: "#1f5a40" },
-  { front: "#8467ad", top: "#b497d5", side: "#5c477b" },
-  { front: "#b76e28", top: "#e2a35e", side: "#7f4b1c" },
-  { front: "#b5413d", top: "#df786d", side: "#7d2f35" },
-  { front: "#3f7896", top: "#86b8cf", side: "#2d5368" },
-  { front: "#6f7f38", top: "#aab56a", side: "#4d5927" },
-  { front: "#9a5b7a", top: "#c58aa8", side: "#6c4057" },
-  { front: "#4e668f", top: "#8fa5c8", side: "#374864" },
+  { front: "#36a37d", top: "#9ee5c5", side: "#22715b" },
+  { front: "#f0834a", top: "#ffc49e", side: "#a9532d" },
+  { front: "#6849ee", top: "#b9adff", side: "#432fb0" },
+  { front: "#9dcf3f", top: "#dff6a6", side: "#6f9829" },
+  { front: "#ff5a3d", top: "#ffb09d", side: "#ad372c" },
+  { front: "#5f9df7", top: "#b9d6ff", side: "#386aae" },
+  { front: "#d042b8", top: "#f0aee4", side: "#8e2b7d" },
+  { front: "#f2c241", top: "#ffe38a", side: "#9f7a1f" },
+  { front: "#50b8b1", top: "#aee8e3", side: "#317872" },
 ];
 const statusPieColors: Record<string, string> = {
-  ครบ: "#2b7a58",
-  "ขาดบางวิชา": "#b5413d",
-  ไม่มีข้อมูล: "#b76e28",
+  ครบ: "#36a37d",
+  "ขาดบางวิชา": "#ff5a3d",
+  ไม่มีข้อมูล: "#f0834a",
 };
 
 function numberFormat(value: number) {
@@ -549,7 +549,7 @@ export default function Home() {
     }).join("");
     const svg = `
       <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-        <rect width="${width}" height="${height}" fill="#f4f6f8" />
+        <rect width="${width}" height="${height}" fill="#f7f7f0" />
         <text x="60" y="70" font-size="34" font-weight="800" fill="#1c2530">กราฟ 3 มิติ: ${selectedGroup.group_name}</text>
         <text x="60" y="110" font-size="22" fill="#657181">เทียบพื้นที่ที่เลือก · ความสูงแท่ง = จำนวนโรงเรียนที่ยังไม่พบครูวิชาเอกย่อยนั้น</text>
         ${legend}
@@ -579,7 +579,7 @@ export default function Home() {
     <main className="dashboard">
       <section className="top-band">
         <div className="title-group">
-          <p>ระบบต้นแบบวิเคราะห์อัตรากำลังครู Version 2</p>
+          <p>ระบบต้นแบบวิเคราะห์อัตรากำลังครู</p>
           <h1>แดชบอร์ดกลุ่มวิชาเอกครู</h1>
           <div className="prototype-notice">
             <strong>Prototype (ระบบต้นแบบ)</strong>
@@ -1127,7 +1127,7 @@ export default function Home() {
           </article>
 
           <article className="panel">
-            <h2>นิยาม Version 2</h2>
+            <h2>นิยามการคำนวณ</h2>
             <p>
               ระบบนับครูจากไฟล์ครูโดยดูวิชาเอกเป็นหลัก แล้วจัดเข้ากลุ่มตามรายการใน {data.taxonomy_source}
               สำหรับรายวิชาเอกย่อย ถ้าพบครู 1 คนจะแสดง 1 ถ้าพบ 2 คนจะแสดง 2 และถ้าไม่พบข้อมูลครูในวิชานั้นจะแสดงเป็นช่องว่างที่ต้องติดตาม
@@ -1171,7 +1171,7 @@ export default function Home() {
             <h2>ข้อควรอ่าน</h2>
             <p>{data.teacher_record_coverage.note}</p>
             <p>
-              ช่องว่างรายวิชาเอกย่อยใน v2 เป็น baseline เพื่อช่วยชี้เป้าวิชาที่ไม่มีครูตามวิชาเอกในข้อมูล ไม่ใช่คำสั่งจัดสรรอัตรากำลังขั้นสุดท้าย
+              ช่องว่างรายวิชาเอกย่อยในระบบต้นแบบนี้เป็น baseline เพื่อช่วยชี้เป้าวิชาที่ไม่มีครูตามวิชาเอกในข้อมูล ไม่ใช่คำสั่งจัดสรรอัตรากำลังขั้นสุดท้าย
               หากต้องใช้ตัดสินเชิงนโยบายควรเพิ่มเกณฑ์ภาระงาน ชั่วโมงสอน ระดับชั้น และแผนการเปิดรายวิชาของแต่ละโรงเรียน
             </p>
             <p>
