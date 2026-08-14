@@ -208,12 +208,18 @@ button {
 }
 
 .visual-layout {
-  grid-template-columns: 1.25fr 0.75fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .visual-panel,
 .export-panel {
   grid-column: 1 / -1;
+}
+
+.chart-table-panel {
+  min-height: 430px;
+  display: flex;
+  flex-direction: column;
 }
 
 .area-insight-strip {
@@ -663,7 +669,23 @@ button {
 }
 
 .compact-table table {
-  min-width: 660px;
+  min-width: 680px;
+}
+
+.balanced-table {
+  max-height: 320px;
+  flex: 1;
+}
+
+.balanced-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  box-shadow: 0 1px 0 var(--line);
+}
+
+.balanced-table tbody tr:last-child td {
+  border-bottom: 0;
 }
 
 table {

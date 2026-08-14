@@ -780,14 +780,14 @@ export default function Home() {
             </div>
           </section>
 
-          <section className="panel">
+          <section className="panel chart-table-panel">
             <div className="panel-head">
               <div>
                 <h2>ตารางประกอบกราฟ</h2>
                 <span>ข้อมูลชุดเดียวกับกราฟ สามารถนำไปใช้ต่อได้</span>
               </div>
             </div>
-            <div className="table-wrap compact-table">
+            <div className="table-wrap compact-table balanced-table">
               <table>
                 <thead>
                   <tr>
@@ -811,14 +811,14 @@ export default function Home() {
             </div>
           </section>
 
-          <section className="panel">
+          <section className="panel chart-table-panel">
             <div className="panel-head">
               <div>
                 <h2>ตารางสรุปพื้นที่</h2>
                 <span>เรียงกลุ่มวิชาตามจำนวนช่องว่างในพื้นที่ที่เลือก</span>
               </div>
             </div>
-            <div className="table-wrap compact-table">
+            <div className="table-wrap compact-table balanced-table">
               <table>
                 <thead>
                   <tr>
