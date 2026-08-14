@@ -103,6 +103,17 @@ const navItems = [
 ] as const;
 
 const schoolStatusOrder = ["ทั้งหมด", "ขาดบางวิชา", "ครบ", "ไม่มีข้อมูล"];
+const chartPalettes = [
+  { front: "#2f6f91", top: "#6fa3c7", side: "#1f4a66" },
+  { front: "#2f7d5c", top: "#72b892", side: "#1f5a40" },
+  { front: "#8467ad", top: "#b497d5", side: "#5c477b" },
+  { front: "#b76e28", top: "#e2a35e", side: "#7f4b1c" },
+  { front: "#b5413d", top: "#df786d", side: "#7d2f35" },
+  { front: "#3f7896", top: "#86b8cf", side: "#2d5368" },
+  { front: "#6f7f38", top: "#aab56a", side: "#4d5927" },
+  { front: "#9a5b7a", top: "#c58aa8", side: "#6c4057" },
+  { front: "#4e668f", top: "#8fa5c8", side: "#374864" },
+];
 
 function numberFormat(value: number) {
   return new Intl.NumberFormat("th-TH").format(value);
@@ -316,15 +327,17 @@ export default function Home() {
     const height = 720;
     const max = Math.max(1, ...chartRows.map((row) => row.shortage_schools));
     const bars = chartRows.map((row, index) => {
+      const palette = chartPalettes[index % chartPalettes.length];
       const barHeight = Math.max(22, (row.shortage_schools / max) * 390);
       const x = 90 + index * 120;
       const y = 540 - barHeight;
       return `
         <g>
-          <rect x="${x}" y="${y}" width="62" height="${barHeight}" fill="#b5413d" />
-          <polygon points="${x},${y} ${x + 22},${y - 18} ${x + 84},${y - 18} ${x + 62},${y}" fill="#d06a37" />
-          <polygon points="${x + 62},${y} ${x + 84},${y - 18} ${x + 84},${540 - 18} ${x + 62},540" fill="#7d2f35" />
-          <text x="${x + 31}" y="${y - 28}" text-anchor="middle" font-size="24" font-weight="700" fill="#1c2530">${row.shortage_schools}</text>
+          <rect x="${x}" y="${y}" width="62" height="${barHeight}" fill="${palette.front}" />
+          <polygon points="${x},${y} ${x + 22},${y - 18} ${x + 84},${y - 18} ${x + 62},${y}" fill="${palette.top}" />
+          <polygon points="${x + 62},${y} ${x + 84},${y - 18} ${x + 84},${540 - 18} ${x + 62},540" fill="${palette.side}" />
+          <rect x="${x + 3}" y="${Math.max(128, y - 54)}" width="58" height="34" rx="17" fill="#ffffff" stroke="${palette.front}" stroke-width="3" />
+          <text x="${x + 31}" y="${Math.max(151, y - 31)}" text-anchor="middle" font-size="22" font-weight="800" fill="${palette.side}">${row.shortage_schools}</text>
           <text x="${x + 31}" y="590" text-anchor="middle" font-size="20" fill="#1c2530">${row.subject}</text>
         </g>
       `;
@@ -555,6 +568,7 @@ export default function Home() {
             <div className="viz-3d-scene" aria-label={`กราฟ 3 มิติ ${selectedGroup.group_name}`}>
               {chartRows.map((row, index) => {
                 const height = Math.max(34, (row.shortage_schools / maxSubjectShortage) * 260);
+                const palette = chartPalettes[index % chartPalettes.length];
                 return (
                   <button
                     className="bar3d-wrap"
@@ -563,7 +577,13 @@ export default function Home() {
                       setSelectedSubject(row.subject);
                       setActiveView("schools");
                     }}
-                    style={{ ["--bar-height" as string]: `${height}px`, ["--delay" as string]: `${index * 40}ms` }}
+                    style={{
+                      ["--bar-height" as string]: `${height}px`,
+                      ["--delay" as string]: `${index * 40}ms`,
+                      ["--bar-front" as string]: palette.front,
+                      ["--bar-top" as string]: palette.top,
+                      ["--bar-side" as string]: palette.side,
+                    }}
                     type="button"
                   >
                     <span className="bar3d-value">{numberFormat(row.shortage_schools)}</span>
@@ -675,7 +695,8 @@ export default function Home() {
             <table>
               <thead>
                 <tr>
-                  <th>โรงเรียน</th>
+                  <th>รหัสโรงเรียน</th>
+                  <th>ชื่อโรงเรียน</th>
                   <th>เขต</th>
                   <th>ครูทั้งหมดในไฟล์</th>
                   <th>ครูกลุ่มนี้</th>
@@ -693,9 +714,9 @@ export default function Home() {
                     : (group?.subjects.find((item) => item.subject === selectedSubject)?.status === "ขาด" ? [selectedSubject] : []);
                   return (
                     <tr key={school.school_code}>
+                      <td className="mono school-code-cell">{school.school_code}</td>
                       <td>
                         <strong>{school.school_name}</strong>
-                        <span className="subtle mono">{school.school_code}</span>
                       </td>
                       <td>{school.area_name}</td>
                       <td>{numberFormat(school.teacher_records)}</td>
