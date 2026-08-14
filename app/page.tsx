@@ -94,6 +94,12 @@ type DashboardData = {
   };
 };
 
+type PieSlice = {
+  label: string;
+  value: number;
+  color: string;
+};
+
 const navItems = [
   { id: "overview", label: "ภาพรวม" },
   { id: "groups", label: "กลุ่มวิชา" },
@@ -114,6 +120,11 @@ const chartPalettes = [
   { front: "#9a5b7a", top: "#c58aa8", side: "#6c4057" },
   { front: "#4e668f", top: "#8fa5c8", side: "#374864" },
 ];
+const statusPieColors: Record<string, string> = {
+  ครบ: "#2b7a58",
+  "ขาดบางวิชา": "#b5413d",
+  ไม่มีข้อมูล: "#b76e28",
+};
 
 function numberFormat(value: number) {
   return new Intl.NumberFormat("th-TH").format(value);
@@ -155,6 +166,54 @@ function ProgressBar({ value, max, tone }: { value: number; max: number; tone: s
     <div className="bar-track" aria-hidden="true">
       <div className={`bar-fill ${tone}`} style={{ width: `${Math.max(3, (value / Math.max(max, 1)) * 100)}%` }} />
     </div>
+  );
+}
+
+function PieChart({
+  title,
+  subtitle,
+  slices,
+}: {
+  title: string;
+  subtitle: string;
+  slices: PieSlice[];
+}) {
+  const filtered = slices.filter((slice) => slice.value > 0);
+  const total = filtered.reduce((sum, slice) => sum + slice.value, 0);
+  let cursor = 0;
+  const gradient = filtered.length
+    ? filtered.map((slice) => {
+        const start = cursor;
+        cursor += (slice.value / Math.max(total, 1)) * 360;
+        return `${slice.color} ${start}deg ${cursor}deg`;
+      }).join(", ")
+    : "#edf1f5 0deg 360deg";
+
+  return (
+    <article className="pie-card">
+      <div>
+        <h3>{title}</h3>
+        <span>{subtitle}</span>
+      </div>
+      <div className="pie-body">
+        <div className="pie-chart" style={{ background: `conic-gradient(${gradient})` }}>
+          <div>
+            <strong>{numberFormat(total)}</strong>
+            <small>รวม</small>
+          </div>
+        </div>
+        <div className="pie-legend">
+          {(filtered.length ? filtered : [{ label: "ไม่มีข้อมูล", value: 0, color: "#9ca8b5" }]).map((slice) => (
+            <div className="legend-row" key={slice.label}>
+              <i style={{ background: slice.color }} />
+              <span>{slice.label}</span>
+              <strong>{numberFormat(slice.value)}</strong>
+              <small>{percent(slice.value, total)}</small>
+            </div>
+          ))}
+        </div>
+      </div>
+    </article>
   );
 }
 
@@ -205,6 +264,7 @@ export default function Home() {
   const [selectedGroupId, setSelectedGroupId] = useState("science");
   const [selectedSubject, setSelectedSubject] = useState("ทั้งหมด");
   const [area, setArea] = useState("ทั้งหมด");
+  const [visualArea, setVisualArea] = useState("ทั้งหมด");
   const [schoolStatus, setSchoolStatus] = useState("ทั้งหมด");
   const [query, setQuery] = useState("");
   const [explainTopic, setExplainTopic] = useState<"visual" | "data" | "export" | null>(null);
@@ -270,6 +330,46 @@ export default function Home() {
     ? selectedSubjectRows
     : data.top_subject_shortage.filter((row) => row.group_id === selectedGroup.group_id);
   const chartRows = visualRows.slice(0, 9);
+  const visualAreaSchools = visualArea === "ทั้งหมด"
+    ? data.schools
+    : data.schools.filter((school) => school.area_name === visualArea);
+  const areaGroupStatusSlices: PieSlice[] = ["ครบ", "ขาดบางวิชา", "ไม่มีข้อมูล"].map((status) => ({
+    label: status,
+    value: visualAreaSchools.filter((school) => {
+      const group = school.subject_groups.find((item) => item.group_id === selectedGroup.group_id);
+      return (group?.status ?? "ไม่มีข้อมูล") === status;
+    }).length,
+    color: statusPieColors[status],
+  }));
+  const areaSubjectShortageSlices: PieSlice[] = selectedGroup.subjects.map((subject, index) => ({
+    label: subject,
+    value: visualAreaSchools.filter((school) => {
+      const group = school.subject_groups.find((item) => item.group_id === selectedGroup.group_id);
+      return group?.subjects.find((item) => item.subject === subject)?.status === "ขาด";
+    }).length,
+    color: chartPalettes[index % chartPalettes.length].front,
+  }));
+  const areaTeacherGroupSlices: PieSlice[] = data.major_groups.map((group, index) => ({
+    label: group.group_name.replace("กลุ่มวิชา", ""),
+    value: visualAreaSchools.reduce((sum, school) => {
+      const subjectGroup = school.subject_groups.find((item) => item.group_id === group.group_id);
+      return sum + (subjectGroup?.actual_teachers ?? 0);
+    }, 0),
+    color: chartPalettes[index % chartPalettes.length].front,
+  }));
+  const areaCoverageRows = data.major_groups.map((group) => {
+    const rows = visualAreaSchools.map((school) => school.subject_groups.find((item) => item.group_id === group.group_id));
+    const shortageSlots = rows.reduce((sum, row) => sum + (row?.missing_subjects.length ?? 0), 0);
+    const actualTeachers = rows.reduce((sum, row) => sum + (row?.actual_teachers ?? 0), 0);
+    const completeSchools = rows.filter((row) => row?.status === "ครบ").length;
+    return {
+      group_id: group.group_id,
+      group_name: group.group_name,
+      actual_teachers: actualTeachers,
+      complete_schools: completeSchools,
+      shortage_slots: shortageSlots,
+    };
+  }).sort((a, b) => b.shortage_slots - a.shortage_slots);
 
   function exportSubjectCsv() {
     const rows = selectedSubjectRows.map((row) => [
@@ -596,6 +696,61 @@ export default function Home() {
             </div>
           </section>
 
+          <section className="panel visual-panel">
+            <div className="panel-head split-head">
+              <div>
+                <h2>Pie Chart วิเคราะห์รายพื้นที่</h2>
+                <span>เลือกพื้นที่เพื่อดูสัดส่วนสถานะ วิชาที่ขาด และโครงสร้างครูตามกลุ่มวิชา</span>
+              </div>
+              <div className="visual-actions">
+                <select value={visualArea} onChange={(event) => setVisualArea(event.target.value)}>
+                  {areas.map((item) => (
+                    <option key={item}>{item}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="area-insight-strip">
+              <MetricCard
+                label="โรงเรียนในพื้นที่ที่เลือก"
+                value={numberFormat(visualAreaSchools.length)}
+                hint={visualArea === "ทั้งหมด" ? "รวมทุกเขตพื้นที่" : visualArea}
+                tone="accent-blue"
+              />
+              <MetricCard
+                label="ช่องว่างกลุ่มที่เลือก"
+                value={numberFormat(areaSubjectShortageSlices.reduce((sum, row) => sum + row.value, 0))}
+                hint={selectedGroup.group_name}
+                tone="accent-red"
+              />
+              <MetricCard
+                label="ครูทุกกลุ่มในพื้นที่"
+                value={numberFormat(areaTeacherGroupSlices.reduce((sum, row) => sum + row.value, 0))}
+                hint="นับจาก record ครูในไฟล์"
+                tone="accent-green"
+              />
+            </div>
+
+            <div className="pie-grid">
+              <PieChart
+                title="สถานะของโรงเรียนในกลุ่มที่เลือก"
+                subtitle={`${selectedGroup.group_name} · ${visualArea}`}
+                slices={areaGroupStatusSlices}
+              />
+              <PieChart
+                title="วิชาเอกย่อยที่ยังไม่มีครู"
+                subtitle="สัดส่วนช่องว่างภายในกลุ่มที่เลือก"
+                slices={areaSubjectShortageSlices}
+              />
+              <PieChart
+                title="โครงสร้างครูตามกลุ่มวิชา"
+                subtitle={`นับครูจริงใน ${visualArea}`}
+                slices={areaTeacherGroupSlices}
+              />
+            </div>
+          </section>
+
           <section className="panel">
             <div className="panel-head">
               <div>
@@ -620,6 +775,37 @@ export default function Home() {
                       <td>{numberFormat(row.total_teachers)}</td>
                       <td>{numberFormat(row.schools_with_teacher)}</td>
                       <td>{numberFormat(row.shortage_schools)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section className="panel">
+            <div className="panel-head">
+              <div>
+                <h2>ตารางสรุปพื้นที่</h2>
+                <span>เรียงกลุ่มวิชาตามจำนวนช่องว่างในพื้นที่ที่เลือก</span>
+              </div>
+            </div>
+            <div className="table-wrap compact-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>กลุ่มวิชา</th>
+                    <th>ครูในพื้นที่</th>
+                    <th>โรงเรียนที่ครบ</th>
+                    <th>ช่องว่างวิชาเอกย่อย</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {areaCoverageRows.map((row) => (
+                    <tr key={row.group_id}>
+                      <td><strong>{row.group_name}</strong></td>
+                      <td>{numberFormat(row.actual_teachers)}</td>
+                      <td>{numberFormat(row.complete_schools)}</td>
+                      <td>{numberFormat(row.shortage_slots)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -798,6 +984,10 @@ export default function Home() {
                 <p>
                   กราฟ 3 มิติแสดงวิชาเอกย่อยของกลุ่มที่เลือก ความสูงของแท่งคือจำนวนโรงเรียนที่ยังไม่มีครูวิชาเอกนั้นใน record ครู
                   ตัวเลขบนแท่งคือจำนวนโรงเรียน ส่วนข้อความใต้แท่งคือชื่อวิชาเอกย่อยและจำนวนครูที่พบจริง
+                </p>
+                <p>
+                  Pie Chart รายพื้นที่ใช้โรงเรียนในเขตที่เลือกเป็นฐาน: วงแรกบอกสถานะครบ/ขาดบางวิชาของกลุ่มวิชาที่เลือก
+                  วงที่สองบอกว่าวิชาย่อยใดเป็นสัดส่วนของช่องว่างมากที่สุด และวงที่สามบอกสัดส่วนจำนวนครูจริงตามกลุ่มวิชาในพื้นที่นั้น
                 </p>
                 <p>
                   การคำนวณช่องว่างรายวิชาใช้ baseline ว่า หากโรงเรียนมีข้อมูลครูแล้ว แต่ไม่มีครูในวิชาเอกย่อยนั้นเลย จะนับเป็น 1 ช่องว่างที่ควรติดตาม
