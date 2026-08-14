@@ -906,6 +906,7 @@ data = load_data()
 areas = ["ทั้งหมด"] + [row["area_name"] for row in data["area_summary"]]
 area_options = [row["area_name"] for row in data["area_summary"]]
 group_options = {group["group_name"]: group["group_id"] for group in data["major_groups"]}
+schoolStatusOrder = ["ทั้งหมด", "ขาดบางวิชา", "ครบ", "ไม่มีข้อมูล"]
 
 st.markdown(
     f"""
