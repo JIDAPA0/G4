@@ -336,16 +336,41 @@ export default function Home() {
   const completionRate = percent(data.overview.complete_group_school_pairs, data.overview.total_group_school_pairs);
   const maxGroupShortage = Math.max(1, ...data.major_groups.map((group) => group.shortage_subject_slots));
   const maxSubjectShortage = Math.max(1, ...selectedSubjectRows.map((row) => row.shortage_schools));
-  const visualRows = selectedSubjectRows.length
-    ? selectedSubjectRows
-    : data.top_subject_shortage.filter((row) => row.group_id === selectedGroup.group_id);
-  const chartRows = visualRows.slice(0, 9);
   const selectedSchool = selectedSchoolCode
     ? data.schools.find((school) => school.school_code === selectedSchoolCode) ?? null
     : null;
   const visualAreaSchools = visualArea === "ทั้งหมด"
     ? data.schools
     : data.schools.filter((school) => school.area_name === visualArea);
+  const scopedSubjectRows = selectedGroup.subjects.map((subject) => {
+    let totalTeachers = 0;
+    let schoolsWithTeacher = 0;
+    let shortageSchools = 0;
+
+    visualAreaSchools.forEach((school) => {
+      const group = school.subject_groups.find((item) => item.group_id === selectedGroup.group_id);
+      const subjectRow = group?.subjects.find((item) => item.subject === subject);
+      const teacherCount = subjectRow?.teacher_count ?? 0;
+
+      totalTeachers += teacherCount;
+      if (teacherCount > 0) schoolsWithTeacher += 1;
+      if (subjectRow?.status === "ขาด") shortageSchools += 1;
+    });
+
+    return {
+      group_id: selectedGroup.group_id,
+      group_name: selectedGroup.group_name,
+      subject,
+      total_teachers: totalTeachers,
+      schools_with_teacher: schoolsWithTeacher,
+      shortage_schools: shortageSchools,
+    };
+  }).sort((a, b) => b.shortage_schools - a.shortage_schools || b.total_teachers - a.total_teachers);
+  const chartRows = scopedSubjectRows.slice(0, 9);
+  const maxChartShortage = Math.max(1, ...scopedSubjectRows.map((row) => row.shortage_schools));
+  const exportAreaSlug = visualArea === "ทั้งหมด"
+    ? "all-areas"
+    : visualArea.replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, "-");
   const areaGroupStatusSlices: PieSlice[] = ["ครบ", "ขาดบางวิชา", "ไม่มีข้อมูล"].map((status) => ({
     label: status,
     value: visualAreaSchools.filter((school) => {
@@ -385,19 +410,21 @@ export default function Home() {
   }).sort((a, b) => b.shortage_slots - a.shortage_slots);
 
   function exportSubjectCsv() {
-    const rows = selectedSubjectRows.map((row) => [
+    const rows = scopedSubjectRows.map((row) => [
+      visualArea,
       row.group_name,
       row.subject,
       row.total_teachers,
       row.schools_with_teacher,
       row.shortage_schools,
     ]);
-    const csv = rowsToCsv(["กลุ่มวิชา", "วิชาเอกย่อย", "จำนวนครู", "โรงเรียนที่มีครู", "โรงเรียนที่ยังไม่มีครู"], rows);
-    downloadBlob(`subject-major-${selectedGroup.group_id}.csv`, "text/csv;charset=utf-8", `\uFEFF${csv}`);
+    const csv = rowsToCsv(["พื้นที่", "กลุ่มวิชา", "วิชาเอกย่อย", "จำนวนครู", "โรงเรียนที่มีครู", "โรงเรียนที่ยังไม่มีครู"], rows);
+    downloadBlob(`subject-major-${selectedGroup.group_id}-${exportAreaSlug}.csv`, "text/csv;charset=utf-8", `\uFEFF${csv}`);
   }
 
   function exportSubjectExcel() {
-    const rows = selectedSubjectRows.map((row) => [
+    const rows = scopedSubjectRows.map((row) => [
+      visualArea,
       row.group_name,
       row.subject,
       row.total_teachers,
@@ -405,11 +432,11 @@ export default function Home() {
       row.shortage_schools,
     ]);
     const html = rowsToExcelTable(
-      `สรุปวิชาเอกย่อย - ${selectedGroup.group_name}`,
-      ["กลุ่มวิชา", "วิชาเอกย่อย", "จำนวนครู", "โรงเรียนที่มีครู", "โรงเรียนที่ยังไม่มีครู"],
+      `สรุปวิชาเอกย่อย - ${selectedGroup.group_name} - ${visualArea}`,
+      ["พื้นที่", "กลุ่มวิชา", "วิชาเอกย่อย", "จำนวนครู", "โรงเรียนที่มีครู", "โรงเรียนที่ยังไม่มีครู"],
       rows,
     );
-    downloadBlob(`subject-major-${selectedGroup.group_id}.xls`, "application/vnd.ms-excel;charset=utf-8", html);
+    downloadBlob(`subject-major-${selectedGroup.group_id}-${exportAreaSlug}.xls`, "application/vnd.ms-excel;charset=utf-8", html);
   }
 
   function exportSchoolCsv() {
@@ -475,7 +502,7 @@ export default function Home() {
       <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
         <rect width="${width}" height="${height}" fill="#f4f6f8" />
         <text x="60" y="70" font-size="34" font-weight="800" fill="#1c2530">กราฟ 3 มิติ: ${selectedGroup.group_name}</text>
-        <text x="60" y="110" font-size="22" fill="#657181">ความสูงแท่ง = จำนวนโรงเรียนที่ยังไม่มีครูวิชาเอกย่อยนั้นในข้อมูล</text>
+        <text x="60" y="110" font-size="22" fill="#657181">พื้นที่: ${visualArea} · ความสูงแท่ง = จำนวนโรงเรียนที่ยังไม่มีครูวิชาเอกย่อยนั้น</text>
         <line x1="70" y1="540" x2="1130" y2="540" stroke="#9ca8b5" stroke-width="2" />
         ${bars}
       </svg>
@@ -491,7 +518,7 @@ export default function Home() {
       if (!context) return;
       context.drawImage(image, 0, 0);
       canvas.toBlob((blob) => {
-        if (blob) downloadBlob(`chart-3d-${selectedGroup.group_id}.png`, "image/png", blob);
+        if (blob) downloadBlob(`chart-3d-${selectedGroup.group_id}-${exportAreaSlug}.png`, "image/png", blob);
         URL.revokeObjectURL(url);
       });
     };
@@ -677,7 +704,7 @@ export default function Home() {
             <div className="panel-head split-head">
               <div>
                 <h2>กราฟ 3 มิติรายวิชาเอกย่อย</h2>
-                <span>แท่งสูงหมายถึงมีโรงเรียนจำนวนมากที่ยังไม่มีครูวิชาเอกนั้นในข้อมูล</span>
+                <span>แท่งสูงหมายถึงจำนวนโรงเรียนในพื้นที่ที่เลือกที่ยังไม่มีครูวิชาเอกนั้น</span>
               </div>
               <div className="visual-actions">
                 <select value={selectedGroupId} onChange={(event) => {
@@ -688,15 +715,20 @@ export default function Home() {
                     <option key={group.group_id} value={group.group_id}>{group.group_name}</option>
                   ))}
                 </select>
+                <select value={visualArea} onChange={(event) => setVisualArea(event.target.value)}>
+                  {areas.map((item) => (
+                    <option key={item}>{item}</option>
+                  ))}
+                </select>
                 <button type="button" onClick={downloadChartPng}>ภาพ PNG</button>
                 <button type="button" onClick={exportSubjectCsv}>CSV</button>
                 <button type="button" onClick={exportSubjectExcel}>Excel</button>
               </div>
             </div>
 
-            <div className="viz-3d-scene" aria-label={`กราฟ 3 มิติ ${selectedGroup.group_name}`}>
+            <div className="viz-3d-scene" aria-label={`กราฟ 3 มิติ ${selectedGroup.group_name} พื้นที่ ${visualArea}`}>
               {chartRows.map((row, index) => {
-                const height = Math.max(34, (row.shortage_schools / maxSubjectShortage) * 260);
+                const height = Math.max(34, (row.shortage_schools / maxChartShortage) * 260);
                 const palette = chartPalettes[index % chartPalettes.length];
                 return (
                   <button
@@ -784,7 +816,7 @@ export default function Home() {
             <div className="panel-head">
               <div>
                 <h2>ตารางประกอบกราฟ</h2>
-                <span>ข้อมูลชุดเดียวกับกราฟ สามารถนำไปใช้ต่อได้</span>
+                <span>ข้อมูลชุดเดียวกับกราฟ · พื้นที่: {visualArea}</span>
               </div>
             </div>
             <div className="table-wrap compact-table balanced-table">
@@ -798,7 +830,7 @@ export default function Home() {
                   </tr>
                 </thead>
                 <tbody>
-                  {selectedSubjectRows.map((row) => (
+                  {scopedSubjectRows.map((row) => (
                     <tr key={row.subject}>
                       <td><strong>{row.subject}</strong></td>
                       <td>{numberFormat(row.total_teachers)}</td>
@@ -1083,8 +1115,8 @@ export default function Home() {
               <>
                 <h2>กราฟแสดงอะไร</h2>
                 <p>
-                  กราฟ 3 มิติแสดงวิชาเอกย่อยของกลุ่มที่เลือก ความสูงของแท่งคือจำนวนโรงเรียนที่ยังไม่มีครูวิชาเอกนั้นใน record ครู
-                  ตัวเลขบนแท่งคือจำนวนโรงเรียน ส่วนข้อความใต้แท่งคือชื่อวิชาเอกย่อยและจำนวนครูที่พบจริง
+                  กราฟ 3 มิติแสดงวิชาเอกย่อยของกลุ่มและพื้นที่ที่เลือก ความสูงของแท่งคือจำนวนโรงเรียนใน scope นั้นที่ยังไม่มีครูวิชาเอกนั้นใน record ครู
+                  ตัวเลขบนแท่งคือจำนวนโรงเรียน ส่วนข้อความใต้แท่งคือชื่อวิชาเอกย่อยและจำนวนครูที่พบจริงในพื้นที่ที่เลือก
                 </p>
                 <p>
                   Pie Chart รายพื้นที่ใช้โรงเรียนในเขตที่เลือกเป็นฐาน: วงแรกบอกสถานะครบ/ขาดบางวิชาของกลุ่มวิชาที่เลือก
