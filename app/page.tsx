@@ -139,6 +139,14 @@ function numberFormat(value: number) {
   return new Intl.NumberFormat("th-TH").format(value);
 }
 
+function teacherCountText(value: number) {
+  return `พบครู ${numberFormat(value)} คน`;
+}
+
+function teacherRecordText(value: number) {
+  return `มีข้อมูลครู ${numberFormat(value)} รายการ`;
+}
+
 function percent(value: number, total: number) {
   if (!total) return "0.0%";
   return `${((value / total) * 100).toFixed(1)}%`;
@@ -441,7 +449,7 @@ export default function Home() {
       row.schools_with_teacher,
       row.shortage_schools,
     ]);
-    const csv = rowsToCsv(["พื้นที่", "กลุ่มวิชา", "วิชาเอกย่อย", "จำนวนครู", "โรงเรียนที่มีครู", "โรงเรียนที่ยังไม่มีครู"], rows);
+    const csv = rowsToCsv(["พื้นที่", "กลุ่มวิชา", "วิชาเอกย่อย", "จำนวนครูที่พบ", "โรงเรียนที่พบครู", "โรงเรียนที่ยังไม่พบครูวิชานี้"], rows);
     downloadBlob(`subject-major-${selectedGroup.group_id}-${exportAreaSlug}.csv`, "text/csv;charset=utf-8", `\uFEFF${csv}`);
   }
 
@@ -456,7 +464,7 @@ export default function Home() {
     ]);
     const html = rowsToExcelTable(
       `สรุปวิชาเอกย่อย - ${selectedGroup.group_name} - เทียบพื้นที่`,
-      ["พื้นที่", "กลุ่มวิชา", "วิชาเอกย่อย", "จำนวนครู", "โรงเรียนที่มีครู", "โรงเรียนที่ยังไม่มีครู"],
+      ["พื้นที่", "กลุ่มวิชา", "วิชาเอกย่อย", "จำนวนครูที่พบ", "โรงเรียนที่พบครู", "โรงเรียนที่ยังไม่พบครูวิชานี้"],
       rows,
     );
     downloadBlob(`subject-major-${selectedGroup.group_id}-${exportAreaSlug}.xls`, "application/vnd.ms-excel;charset=utf-8", html);
@@ -479,7 +487,7 @@ export default function Home() {
       ];
     });
     const csv = rowsToCsv(
-      ["รหัสโรงเรียน", "โรงเรียน", "เขต", "ครูทั้งหมดในไฟล์", "กลุ่มวิชา", "ครูกลุ่มนี้", "วิชาที่มี", "วิชาทั้งหมด", "สถานะ", "วิชาที่ต้องเติม"],
+      ["รหัสโรงเรียน", "โรงเรียน", "เขต", "จำนวนข้อมูลครูในไฟล์", "กลุ่มวิชา", "จำนวนครูในกลุ่มนี้", "วิชาที่พบครู", "วิชาทั้งหมด", "สถานะ", "วิชาที่ต้องติดตาม"],
       rows,
     );
     downloadBlob(`schools-${selectedGroup.group_id}.csv`, "text/csv;charset=utf-8", `\uFEFF${csv}`);
@@ -541,7 +549,7 @@ export default function Home() {
       <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
         <rect width="${width}" height="${height}" fill="#f4f6f8" />
         <text x="60" y="70" font-size="34" font-weight="800" fill="#1c2530">กราฟ 3 มิติ: ${selectedGroup.group_name}</text>
-        <text x="60" y="110" font-size="22" fill="#657181">เทียบพื้นที่ที่ติ๊ก · ความสูงแท่ง = จำนวนโรงเรียนที่ยังไม่มีครูวิชาเอกย่อยนั้น</text>
+        <text x="60" y="110" font-size="22" fill="#657181">เทียบพื้นที่ที่เลือก · ความสูงแท่ง = จำนวนโรงเรียนที่ยังไม่พบครูวิชาเอกย่อยนั้น</text>
         ${legend}
         <line x1="70" y1="540" x2="1130" y2="540" stroke="#9ca8b5" stroke-width="2" />
         ${bars}
@@ -572,7 +580,7 @@ export default function Home() {
           <p>ระบบต้นแบบวิเคราะห์อัตรากำลังครู Version 2</p>
           <h1>แดชบอร์ดกลุ่มวิชาเอกครู</h1>
           <span>
-            วิเคราะห์จากไฟล์ครูตามวิชาเอก · {numberFormat(data.overview.target_areas)} เขตพื้นที่ · อัปเดต {data.generated_at}
+            วิเคราะห์จากไฟล์ครูตามวิชาเอก · ครอบคลุม {numberFormat(data.overview.target_areas)} เขตพื้นที่ · อัปเดต {data.generated_at}
           </span>
         </div>
         <div className="hero-stat">
@@ -608,13 +616,13 @@ export default function Home() {
             <MetricCard
               label="โรงเรียนในชุดข้อมูล"
               value={numberFormat(data.overview.total_schools)}
-              hint={`มี record ครู ${numberFormat(data.overview.covered_schools)} โรงเรียน`}
+              hint={`มีข้อมูลครูใน ${numberFormat(data.overview.covered_schools)} โรงเรียน`}
               tone="accent-blue"
             />
             <MetricCard
               label="ครูที่นำมานับ"
               value={numberFormat(data.overview.teacher_records)}
-              hint="นับจากตำแหน่งครูในไฟล์ครู"
+              hint="นับจากรายการตำแหน่งครูในไฟล์ครู"
               tone="accent-green"
             />
             <MetricCard
@@ -653,7 +661,7 @@ export default function Home() {
                   >
                     <div>
                       <strong>{group.group_name}</strong>
-                      <span>{numberFormat(group.actual_teachers)} ครู · ครบ {numberFormat(group.complete_schools)} โรงเรียน</span>
+                      <span>{teacherCountText(group.actual_teachers)} · ข้อมูลครบ {numberFormat(group.complete_schools)} โรงเรียน</span>
                     </div>
                     <b>{numberFormat(group.shortage_subject_slots)}</b>
                     <ProgressBar value={group.shortage_subject_slots} max={maxGroupShortage} tone="fill-danger" />
@@ -666,7 +674,7 @@ export default function Home() {
               <div className="panel-head">
                 <div>
                   <h2>วิชาเอกย่อยที่ขาดบ่อย</h2>
-                  <span>นับโรงเรียนที่ยังไม่มีครูวิชาเอกนั้นใน record</span>
+                  <span>นับโรงเรียนที่ยังไม่พบครูวิชาเอกนั้นในข้อมูลครู</span>
                 </div>
               </div>
               <div className="subject-list">
@@ -710,7 +718,7 @@ export default function Home() {
           </div>
 
           <div className="group-summary-band">
-            <MetricCard label="ครูในกลุ่มนี้" value={numberFormat(selectedGroup.actual_teachers)} hint="นับจากวิชาเอกในไฟล์ครู" tone="accent-green" />
+            <MetricCard label="ครูในกลุ่มนี้" value={numberFormat(selectedGroup.actual_teachers)} hint="จำนวนครูที่พบจากวิชาเอกในไฟล์ครู" tone="accent-green" />
             <MetricCard label="โรงเรียนที่ครบ" value={numberFormat(selectedGroup.complete_schools)} hint={`${numberFormat(selectedGroup.partial_schools)} โรงเรียนยังขาดบางวิชา`} tone="accent-blue" />
             <MetricCard label="ช่องว่างวิชาย่อย" value={numberFormat(selectedGroup.shortage_subject_slots)} hint="baseline อย่างน้อย 1 คนต่อวิชาย่อย" tone="accent-red" />
           </div>
@@ -728,7 +736,7 @@ export default function Home() {
               >
                 <div>
                   <strong>{subject.subject}</strong>
-                  <span>{numberFormat(subject.total_teachers)} ครู · มีใน {numberFormat(subject.schools_with_teacher)} โรงเรียน</span>
+                  <span>{teacherCountText(subject.total_teachers)} · พบใน {numberFormat(subject.schools_with_teacher)} โรงเรียน</span>
                 </div>
                 <b>{numberFormat(subject.shortage_schools)}</b>
                 <ProgressBar value={subject.shortage_schools} max={maxSubjectShortage} tone="fill-danger" />
@@ -805,12 +813,12 @@ export default function Home() {
                             ["--bar-top" as string]: palette.top,
                             ["--bar-side" as string]: palette.side,
                           }}
-                          title={`${row.area_name}: ${numberFormat(row.shortage_schools)} โรงเรียนที่ยังไม่มีครู ${row.subject}`}
+                          title={`${row.area_name}: ${numberFormat(row.shortage_schools)} โรงเรียนที่ยังไม่พบครูวิชา ${row.subject}`}
                           type="button"
                         >
                           <span className="bar3d-value">{numberFormat(row.shortage_schools)}</span>
                           <span className="bar3d" />
-                          <small>{numberFormat(row.total_teachers)} ครู</small>
+                          <small>{teacherCountText(row.total_teachers)}</small>
                           <em>{row.area_name.replace("สำนักงานเขตพื้นที่การศึกษา", "สพท.")}</em>
                         </button>
                       );
@@ -853,7 +861,7 @@ export default function Home() {
               <MetricCard
                 label="ครูทุกกลุ่มในพื้นที่"
                 value={numberFormat(areaTeacherGroupSlices.reduce((sum, row) => sum + row.value, 0))}
-                hint="นับจาก record ครูในไฟล์"
+                hint="นับจากข้อมูลครูในไฟล์"
                 tone="accent-green"
               />
             </div>
@@ -871,7 +879,7 @@ export default function Home() {
               />
               <PieChart
                 title="โครงสร้างครูตามกลุ่มวิชา"
-                subtitle={`นับครูจริงใน ${visualArea}`}
+                subtitle={`จำนวนครูที่พบใน ${visualArea}`}
                 slices={areaTeacherGroupSlices}
               />
             </div>
@@ -890,9 +898,9 @@ export default function Home() {
                   <tr>
                     <th>วิชาเอกย่อย</th>
                     <th>พื้นที่</th>
-                    <th>จำนวนครู</th>
-                    <th>โรงเรียนที่มีครู</th>
-                    <th>โรงเรียนที่ยังไม่มีครู</th>
+                    <th>จำนวนครูที่พบ</th>
+                    <th>โรงเรียนที่พบครู</th>
+                    <th>โรงเรียนที่ยังไม่พบครูวิชานี้</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -922,7 +930,7 @@ export default function Home() {
                 <thead>
                   <tr>
                     <th>กลุ่มวิชา</th>
-                    <th>ครูในพื้นที่</th>
+                    <th>จำนวนครูที่พบในพื้นที่</th>
                     <th>โรงเรียนที่ครบ</th>
                     <th>ช่องว่างวิชาเอกย่อย</th>
                   </tr>
@@ -944,7 +952,7 @@ export default function Home() {
           <section className="panel export-panel">
             <h2>ส่งออกข้อมูลรายโรงเรียน</h2>
             <p>
-              ปุ่มนี้ส่งออกตารางโรงเรียนตามตัวกรองปัจจุบัน พร้อมจำนวนครูกลุ่มที่เลือก สถานะครบ/ขาดบางวิชา และรายชื่อวิชาที่ต้องเติม
+              ปุ่มนี้ส่งออกตารางโรงเรียนตามตัวกรองปัจจุบัน พร้อมจำนวนครูที่พบในกลุ่มที่เลือก สถานะครบ/ขาดบางวิชา และรายชื่อวิชาที่ควรติดตาม
             </p>
             <div className="export-actions">
               <button type="button" onClick={exportSchoolCsv}>ดาวน์โหลด CSV รายโรงเรียน</button>
@@ -1012,8 +1020,8 @@ export default function Home() {
                   <th>รหัสโรงเรียน</th>
                   <th>ชื่อโรงเรียน</th>
                   <th>เขต</th>
-                  <th>ครูทั้งหมดในไฟล์</th>
-                  <th>ครูกลุ่มนี้</th>
+                  <th>ข้อมูลครูในไฟล์</th>
+                  <th>ครูที่พบในกลุ่มนี้</th>
                   <th>ครบวิชาย่อย</th>
                   <th>สถานะ</th>
                   <th>วิชาที่ต้องเติม</th>
@@ -1051,7 +1059,7 @@ export default function Home() {
                       </td>
                       <td>
                         <button className="table-action" type="button" onClick={() => setSelectedSchoolCode(school.school_code)}>
-                          ดูครู {numberFormat(school.teacher_roster.length)}
+                          ดูรายชื่อครู {numberFormat(school.teacher_roster.length)} รายการ
                         </button>
                       </td>
                     </tr>
@@ -1070,7 +1078,7 @@ export default function Home() {
             <div className="guide-grid">
               <div>
                 <strong>ภาพรวม</strong>
-                <span>ใช้ดูจำนวนโรงเรียน ครูที่มี record ความครบถ้วนรายกลุ่ม และกลุ่มวิชาที่ควรติดตามก่อน</span>
+                <span>ใช้ดูจำนวนโรงเรียน จำนวนข้อมูลครู ความครบถ้วนรายกลุ่ม และกลุ่มวิชาที่ควรติดตามก่อน</span>
               </div>
               <div>
                 <strong>กลุ่มวิชา</strong>
@@ -1078,7 +1086,7 @@ export default function Home() {
               </div>
               <div>
                 <strong>กราฟ 3 มิติ</strong>
-                <span>ใช้ดูภาพรวมเชิงกราฟ เลือกกลุ่ม/พื้นที่ ส่งออก PNG, CSV และ Excel-compatible table ได้</span>
+                <span>ใช้ดูภาพรวมเชิงกราฟ เลือกกลุ่ม/พื้นที่ และส่งออกเป็นภาพ PNG, CSV หรือไฟล์ที่เปิดใน Excel ได้</span>
               </div>
               <div>
                 <strong>รายโรงเรียน</strong>
@@ -1113,7 +1121,7 @@ export default function Home() {
             <h2>นิยาม Version 2</h2>
             <p>
               ระบบนับครูจากไฟล์ครูโดยดูวิชาเอกเป็นหลัก แล้วจัดเข้ากลุ่มตามรายการใน {data.taxonomy_source}
-              สำหรับรายวิชาเอกย่อย ถ้ามีครู 1 คนจะแสดง 1 ถ้ามี 2 คนจะแสดง 2 และถ้าไม่มี record ในวิชานั้นจะแสดงเป็นช่องว่างที่ต้องติดตาม
+              สำหรับรายวิชาเอกย่อย ถ้าพบครู 1 คนจะแสดง 1 ถ้าพบ 2 คนจะแสดง 2 และถ้าไม่พบข้อมูลครูในวิชานั้นจะแสดงเป็นช่องว่างที่ต้องติดตาม
             </p>
           </article>
 
@@ -1152,7 +1160,7 @@ export default function Home() {
               {data.area_summary.map((row) => (
                 <div className="area-card" key={row.area_name}>
                   <strong>{row.area_name}</strong>
-                  <span>{numberFormat(row.schools)} โรงเรียน · {numberFormat(row.teacher_records)} records ครู</span>
+                  <span>{numberFormat(row.schools)} โรงเรียน · {teacherRecordText(row.teacher_records)}</span>
                   <small>ครอบคลุม {numberFormat(row.covered_schools)} โรงเรียน · เสี่ยงสูง {numberFormat(row.high_risk)}</small>
                 </div>
               ))}
@@ -1183,8 +1191,8 @@ export default function Home() {
                 <h2>กราฟแสดงอะไร</h2>
                 <p>
                   กราฟ 3 มิติแสดงวิชาเอกย่อยของกลุ่มที่เลือก และแยกแท่งตามพื้นที่ที่ติ๊กไว้เพื่อเทียบกัน
-                  ความสูงของแท่งคือจำนวนโรงเรียนในพื้นที่นั้นที่ยังไม่มีครูวิชาเอกนั้นใน record ครู
-                  ตัวเลขบนแท่งคือจำนวนโรงเรียน ส่วนข้อความใต้แท่งบอกจำนวนครูที่พบจริงในพื้นที่นั้น
+                  ความสูงของแท่งคือจำนวนโรงเรียนในพื้นที่นั้นที่ยังไม่พบครูวิชาเอกนั้นในข้อมูลครู
+                  ตัวเลขบนแท่งคือจำนวนโรงเรียน ส่วนข้อความใต้แท่งบอกจำนวนครูที่พบในพื้นที่นั้น
                 </p>
                 <p>
                   Pie Chart รายพื้นที่ใช้โรงเรียนในเขตที่เลือกเป็นฐาน: วงแรกบอกสถานะครบ/ขาดบางวิชาของกลุ่มวิชาที่เลือก
@@ -1220,7 +1228,7 @@ export default function Home() {
               <div>
                 <h2>{selectedSchool.school_name}</h2>
                 <span className="mono">รหัสโรงเรียน {selectedSchool.school_code}</span>
-                <p>{selectedSchool.area_name} · {numberFormat(selectedSchool.teacher_roster.length)} records ครูในไฟล์</p>
+                <p>{selectedSchool.area_name} · {teacherRecordText(selectedSchool.teacher_roster.length)} ในไฟล์</p>
               </div>
               <button type="button" onClick={() => exportTeacherRosterCsv(selectedSchool)}>ดาวน์โหลด CSV บัญชีครู</button>
             </div>
@@ -1229,7 +1237,7 @@ export default function Home() {
               {selectedSchool.subject_groups.map((group) => (
                 <article key={group.group_id}>
                   <strong>{group.group_name.replace("กลุ่มวิชา", "")}</strong>
-                  <span>{numberFormat(group.actual_teachers)} ครู</span>
+                  <span>{teacherCountText(group.actual_teachers)}</span>
                   <small>{group.status}</small>
                 </article>
               ))}
