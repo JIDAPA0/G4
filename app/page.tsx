@@ -20,7 +20,7 @@ type SchoolSubjectGroup = {
 };
 
 type TeacherRosterRow = {
-  teacher_id: string;
+  teacher_ref: string;
   subject_group_id: string;
   subject_group: string;
   subject_major: string;
@@ -439,13 +439,13 @@ export default function Home() {
     const rows = school.teacher_roster.map((teacher) => [
       school.school_code,
       school.school_name,
-      teacher.teacher_id,
+      teacher.teacher_ref,
       teacher.subject_group,
       teacher.subject_major,
       teacher.teacher_major,
     ]);
     const csv = rowsToCsv(
-      ["รหัสโรงเรียน", "ชื่อโรงเรียน", "รหัสครู/ตำแหน่ง", "กลุ่มวิชา", "วิชาเอกย่อย", "วิชาเอกต้นทางในไฟล์ครู"],
+      ["รหัสโรงเรียน", "ชื่อโรงเรียน", "รหัสอ้างอิงปิดบัง", "กลุ่มวิชา", "วิชาเอกย่อย", "วิชาเอกต้นทางในไฟล์ครู"],
       rows,
     );
     downloadBlob(`teacher-roster-${school.school_code}.csv`, "text/csv;charset=utf-8", `\uFEFF${csv}`);
@@ -1073,7 +1073,7 @@ export default function Home() {
               <table>
                 <thead>
                   <tr>
-                    <th>รหัสครู/ตำแหน่ง</th>
+                    <th>รหัสอ้างอิงปิดบัง</th>
                     <th>กลุ่มวิชา</th>
                     <th>วิชาเอกย่อย</th>
                     <th>วิชาเอกต้นทางในไฟล์ครู</th>
@@ -1081,8 +1081,8 @@ export default function Home() {
                 </thead>
                 <tbody>
                   {selectedSchool.teacher_roster.map((teacher, index) => (
-                    <tr key={`${teacher.teacher_id}-${index}`}>
-                      <td className="mono school-code-cell">{teacher.teacher_id || "ไม่ระบุ"}</td>
+                    <tr key={`${teacher.teacher_ref}-${index}`}>
+                      <td className="mono school-code-cell">{teacher.teacher_ref || "ไม่ระบุ"}</td>
                       <td>{teacher.subject_group}</td>
                       <td><strong>{teacher.subject_major}</strong></td>
                       <td>{teacher.teacher_major}</td>
@@ -1093,7 +1093,7 @@ export default function Home() {
             </div>
 
             <p className="detail-note">
-              ใช้รหัสครู/ตำแหน่งนี้เพื่อค้นย้อนกลับในไฟล์ครูต้นทางได้ โดยหน้านี้ไม่แสดงชื่อบุคคล วันเกิด หรือข้อมูลส่วนบุคคลอื่น
+              รหัสนี้เป็นรหัสอ้างอิงปิดบังสำหรับหน้าเว็บ public ไม่ใช่รหัสครูหรือตำแหน่งจริง และไม่สามารถใช้ย้อนกลับเป็นตัวบุคคลจากหน้าเว็บนี้ได้
             </p>
           </section>
         </div>

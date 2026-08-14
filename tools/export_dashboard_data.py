@@ -112,8 +112,9 @@ def main():
     teacher_subject_counts = teachers.groupby(["school_code", "subject_group_id", "subject_major"]).size().to_dict()
     teacher_roster = defaultdict(list)
     for teacher in teachers.sort_values(["school_code", "subject_group", "subject_major", "teacher_id"]).to_dict(orient="records"):
-        teacher_roster[normalize_code(teacher["school_code"])].append({
-            "teacher_id": normalize_code(teacher.get("teacher_id")),
+        school_code = normalize_code(teacher["school_code"])
+        teacher_roster[school_code].append({
+            "teacher_ref": f"REF-{len(teacher_roster[school_code]) + 1:03d}",
             "subject_group_id": normalize_code(teacher.get("subject_group_id")),
             "subject_group": teacher.get("subject_group", "ไม่ระบุ"),
             "subject_major": teacher.get("subject_major", "ไม่ระบุ"),
