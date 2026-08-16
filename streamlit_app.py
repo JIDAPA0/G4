@@ -39,6 +39,9 @@ st.markdown(
     iframe {
         display: block;
         border: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        min-height: 640px !important;
     }
 
     .fallback {
@@ -68,7 +71,7 @@ st.markdown(
 
 components.iframe(
     DASHBOARD_URL,
-    height=1200,
+    height=900,
     scrolling=True,
 )
 
