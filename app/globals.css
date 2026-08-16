@@ -973,12 +973,14 @@ tbody tr:hover {
 
 .guide-panel,
 .source-panel,
-.model-panel {
+.model-panel,
+.chart-advice-panel {
   grid-column: 1 / -1;
 }
 
 .guide-grid,
-.model-grid {
+.model-grid,
+.advice-list {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
@@ -1013,7 +1015,8 @@ tbody tr:hover {
 }
 
 .guide-grid div,
-.model-grid div {
+.model-grid div,
+.advice-list div {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 14px;
@@ -1023,15 +1026,51 @@ tbody tr:hover {
 .guide-grid strong,
 .guide-grid span,
 .model-grid strong,
-.model-grid span {
+.model-grid span,
+.advice-list strong,
+.advice-list span {
   display: block;
 }
 
 .guide-grid span,
-.model-grid span {
+.model-grid span,
+.advice-list span {
   margin-top: 8px;
   color: #4f5248;
   line-height: 1.55;
+}
+
+.simple-list,
+.step-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.simple-list li,
+.step-list li {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: #fffef8;
+  color: #4f5248;
+  line-height: 1.58;
+}
+
+.step-list li {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.35fr) 1fr;
+  gap: 10px 14px;
+}
+
+.step-list strong {
+  color: var(--ink);
+}
+
+.step-list span {
+  color: #4f5248;
 }
 
 .source-list {
@@ -1198,6 +1237,7 @@ tbody tr:hover {
   .notes-grid,
   .guide-grid,
   .model-grid,
+  .advice-list,
   .source-list,
   .visual-layout,
   .area-insight-strip,
@@ -1258,6 +1298,10 @@ tbody tr:hover {
 
   .pie-chart {
     margin: 0 auto;
+  }
+
+  .step-list li {
+    grid-template-columns: 1fr;
   }
 
   .detail-head {

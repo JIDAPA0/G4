@@ -1083,25 +1083,35 @@ export default function Home() {
       {activeView === "notes" && (
         <section className="notes-grid">
           <article className="panel guide-panel">
-            <h2>คู่มือการใช้แต่ละส่วน</h2>
+            <h2>อ่านหน้านี้จากตรงไหนก่อน</h2>
             <div className="guide-grid">
               <div>
-                <strong>ภาพรวม</strong>
-                <span>ใช้ดูจำนวนโรงเรียน จำนวนข้อมูลครู ความครบถ้วนรายกลุ่ม และกลุ่มวิชาที่ควรติดตามก่อน</span>
+                <strong>1. ภาพรวม</strong>
+                <span>ดูจำนวนโรงเรียน ครูที่นำมานับ และกลุ่มวิชาที่มีช่องว่างมากที่สุด</span>
               </div>
               <div>
-                <strong>กลุ่มวิชา</strong>
-                <span>ใช้เจาะจากกลุ่มใหญ่ไปยังวิชาเอกย่อย เช่น วิทยาศาสตร์และเทคโนโลยี ไปดูเคมี ฟิสิกส์ ชีววิทยา</span>
+                <strong>2. กลุ่มวิชา</strong>
+                <span>เลือกกลุ่มใหญ่ แล้วดูว่าวิชาเอกย่อยใดควรติดตาม เช่น เคมี ฟิสิกส์ ชีววิทยา</span>
               </div>
               <div>
-                <strong>กราฟ 3 มิติ</strong>
-                <span>ใช้ดูภาพรวมเชิงกราฟ เลือกกลุ่ม/พื้นที่ และส่งออกเป็นภาพ PNG, CSV หรือไฟล์ที่เปิดใน Excel ได้</span>
+                <strong>3. กราฟ</strong>
+                <span>เทียบพื้นที่ ดูสัดส่วน และส่งออกภาพหรือไฟล์ตารางสำหรับรายงาน</span>
               </div>
               <div>
-                <strong>รายโรงเรียน</strong>
-                <span>ใช้ค้นโรงเรียน เลือกกลุ่มวิชา ดูวิชาที่ควรติดตาม และเปิดบัญชีครูแบบรหัสปิดบังรายโรงเรียน</span>
+                <strong>4. รายโรงเรียน</strong>
+                <span>ค้นโรงเรียน ดูสถานะรายกลุ่ม และเปิดบัญชีครูแบบรหัสปิดบัง</span>
               </div>
             </div>
+          </article>
+
+          <article className="panel source-panel">
+            <h2>ข้อมูลที่ระบบครอบคลุม</h2>
+            <ol className="simple-list">
+              <li>ครอบคลุม {numberFormat(data.overview.total_schools)} โรงเรียน ใน {numberFormat(data.overview.target_areas)} เขตพื้นที่</li>
+              <li>ใช้ข้อมูลครู {numberFormat(data.overview.teacher_records)} รายการ และมีข้อมูลครูครบ {numberFormat(data.overview.covered_schools)} โรงเรียน</li>
+              <li>จัดกลุ่มตาม {numberFormat(data.overview.official_major_groups)} กลุ่มวิชา และ {numberFormat(data.overview.official_subjects)} วิชาเอกย่อย จาก {data.taxonomy_source}</li>
+              <li>มีผลสรุปรายกลุ่ม รายวิชา รายพื้นที่ รายโรงเรียน และบัญชีครูแบบปิดบังรหัส</li>
+            </ol>
           </article>
 
           <article className="panel source-panel">
@@ -1109,18 +1119,18 @@ export default function Home() {
             <dl className="source-list">
               <div>
                 <dt>teachers.xlsx</dt>
-                <dd>ข้อมูลครูรายบุคคลที่ใช้ระบุกลุ่มวิชาเอก วิชาเอกย่อย และจำนวนครูในแต่ละโรงเรียน</dd>
+                <dd>ข้อมูลครูรายบุคคล ใช้ระบุโรงเรียน กลุ่มวิชาเอก วิชาเอกย่อย และจำนวนครูที่พบ</dd>
               </div>
               <div>
                 <dt>schools.xlsx</dt>
-                <dd>ข้อมูลโรงเรียน เขตพื้นที่ จำนวนนักเรียน จำนวนครูรวม ขนาดโรงเรียน และข้อมูลพื้นฐานระดับโรงเรียน</dd>
+                <dd>ข้อมูลพื้นฐานโรงเรียน เช่น เขตพื้นที่ จำนวนนักเรียน จำนวนครูรวม และขนาดโรงเรียน</dd>
               </div>
               <div>
                 <dt>school_math_analysis.xlsx</dt>
-                <dd>ข้อมูลวิเคราะห์เดิมเรื่องครูคณิต สถานะ ขาด/ตามเกณฑ์/เกิน และผลความเสี่ยงที่ใช้ประกอบการจัดลำดับติดตาม</dd>
+                <dd>ข้อมูลวิเคราะห์เดิมเรื่องครูคณิต ใช้เฉพาะประกอบความเสี่ยงและการจัดลำดับติดตาม</dd>
               </div>
               <div>
-                <dt>กลุ่มวิชาเอก.pdf</dt>
+                <dt>{data.taxonomy_source}</dt>
                 <dd>รายการมาตรฐานที่ใช้จัดกลุ่มวิชา 8 กลุ่ม และวิชาเอกย่อย 20 รายการ</dd>
               </div>
             </dl>
@@ -1128,10 +1138,12 @@ export default function Home() {
 
           <article className="panel">
             <h2>นิยามการคำนวณ</h2>
-            <p>
-              ระบบนับครูจากไฟล์ครูโดยดูวิชาเอกเป็นหลัก แล้วจัดเข้ากลุ่มตามรายการใน {data.taxonomy_source}
-              สำหรับรายวิชาเอกย่อย ถ้าพบครู 1 คนจะแสดง 1 ถ้าพบ 2 คนจะแสดง 2 และถ้าไม่พบข้อมูลครูในวิชานั้นจะแสดงเป็นช่องว่างที่ต้องติดตาม
-            </p>
+            <ol className="step-list">
+              <li><strong>จับคู่ครูกับโรงเรียน</strong><span>อ่านข้อมูลครูรายบุคคล แล้วนับจำนวนครูที่อยู่ในแต่ละโรงเรียน</span></li>
+              <li><strong>จัดกลุ่มวิชา</strong><span>ใช้รายการมาตรฐานจาก {data.taxonomy_source} เพื่อแปลงวิชาเอกเป็นกลุ่มวิชาและวิชาเอกย่อย</span></li>
+              <li><strong>นับครูรายวิชา</strong><span>ถ้าพบครูวิชาเอกย่อยนั้น 1 คนจะแสดง 1 ถ้าพบ 2 คนจะแสดง 2</span></li>
+              <li><strong>หาช่องว่างที่ควรติดตาม</strong><span>ถ้าโรงเรียนมีข้อมูลครูแล้ว แต่ไม่พบครูในวิชาเอกย่อยนั้น ระบบนับเป็น 1 ช่องว่าง</span></li>
+            </ol>
           </article>
 
           <article className="panel model-panel">
@@ -1169,14 +1181,34 @@ export default function Home() {
 
           <article className="panel">
             <h2>ข้อควรอ่าน</h2>
-            <p>{data.teacher_record_coverage.note}</p>
-            <p>
-              ช่องว่างรายวิชาเอกย่อยในระบบต้นแบบนี้เป็น baseline เพื่อช่วยชี้เป้าวิชาที่ไม่มีครูตามวิชาเอกในข้อมูล ไม่ใช่คำสั่งจัดสรรอัตรากำลังขั้นสุดท้าย
-              หากต้องใช้ตัดสินเชิงนโยบายควรเพิ่มเกณฑ์ภาระงาน ชั่วโมงสอน ระดับชั้น และแผนการเปิดรายวิชาของแต่ละโรงเรียน
-            </p>
-            <p>
-              รายละเอียดครูรายโรงเรียนบนเว็บ public ใช้รหัสอ้างอิงปิดบัง เช่น REF-001 แทนรหัสครู/ตำแหน่งจริง เพื่อคุ้มครองข้อมูลบุคคล
-            </p>
+            <ol className="simple-list">
+              <li>{data.teacher_record_coverage.note}</li>
+              <li>คำว่า “ขาด” ในเว็บนี้หมายถึง “ยังไม่พบครูวิชาเอกนั้นในไฟล์ข้อมูล” ควรตรวจสอบกับโรงเรียนก่อนใช้ตัดสินจริง</li>
+              <li>ยังไม่ได้รวมภาระงาน ชั่วโมงสอน ระดับชั้น แผนเปิดรายวิชา หรือการยืมครูข้ามกลุ่มสาระ</li>
+              <li>บัญชีครูรายโรงเรียนใช้รหัสอ้างอิงปิดบัง เช่น REF-001 เพื่อคุ้มครองข้อมูลบุคคล</li>
+            </ol>
+          </article>
+
+          <article className="panel chart-advice-panel">
+            <h2>ข้อเสนอแนะกราฟเพิ่มเติม</h2>
+            <div className="advice-list">
+              <div>
+                <strong>กราฟเส้นแนวโน้ม</strong>
+                <span>เหมาะเมื่อมีข้อมูลหลายปี ใช้ดูว่าช่องว่างครูเพิ่มหรือลดต่อเนื่องหรือไม่</span>
+              </div>
+              <div>
+                <strong>กราฟแท่งเรียงอันดับ</strong>
+                <span>ใช้จัดอันดับโรงเรียนหรือวิชาเอกย่อยที่ควรติดตามก่อน อ่านง่ายกว่ากราฟ 3 มิติในรายงาน</span>
+              </div>
+              <div>
+                <strong>Heatmap โรงเรียน x วิชา</strong>
+                <span>ทำให้เห็นทันทีว่าโรงเรียนใดขาดหลายวิชา และวิชาใดขาดซ้ำหลายโรงเรียน</span>
+              </div>
+              <div>
+                <strong>แผนที่รายเขต</strong>
+                <span>ช่วยดูการกระจายเชิงพื้นที่ เหมาะกับการประชุมวางแผนกำลังครูรายเขต</span>
+              </div>
+            </div>
           </article>
           <article className="panel area-panel">
             <h2>สรุปรายเขตพื้นที่</h2>
@@ -1194,58 +1226,47 @@ export default function Home() {
       )}
 
       {explainTopic && (
-        <div className="modal-backdrop" role="presentation" onClick={() => setExplainTopic(null)}>
-          <section className="explain-modal" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+        <div
+          className="modal-backdrop"
+          role="presentation"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setExplainTopic(null);
+          }}
+        >
+          <section className="explain-modal" role="dialog" aria-modal="true">
             <button className="modal-close" type="button" onClick={() => setExplainTopic(null)}>ปิด</button>
             {explainTopic === "data" && (
               <>
                 <h2>ใช้ข้อมูลจากไหน</h2>
-                <p>
-                  ข้อมูลหลักมาจากไฟล์ครูรายบุคคล `teachers.xlsx` ที่แปลงจากไฟล์ครูดิบ และใช้ `กลุ่มวิชาเอก.pdf`
-                  เป็นรายการมาตรฐานสำหรับจัดกลุ่มวิชาเอก 8 กลุ่ม และวิชาเอกย่อย 20 รายการ
-                </p>
-                <p>
-                  ระบบนับเฉพาะแถวที่เป็นตำแหน่งครู จากนั้นอ่านคอลัมน์กลุ่มวิชาเอกตามมาตรฐาน สาขาวิชาเอกที่บรรจุ และวุฒิการศึกษา
-                  เพื่อ map เป็นกลุ่มวิชาและวิชาเอกย่อย เช่น เคมี ฟิสิกส์ ชีววิทยา เทคโนโลยี หรือคอมพิวเตอร์
-                </p>
+                <ol className="step-list">
+                  <li><strong>ข้อมูลครู</strong><span>ใช้ `teachers.xlsx` เพื่อดูว่าครูแต่ละรายการอยู่โรงเรียนใด และมีวิชาเอกอะไร</span></li>
+                  <li><strong>ข้อมูลโรงเรียน</strong><span>ใช้ `schools.xlsx` เพื่อเติมเขตพื้นที่ ขนาดโรงเรียน จำนวนนักเรียน และข้อมูลพื้นฐาน</span></li>
+                  <li><strong>มาตรฐานกลุ่มวิชา</strong><span>ใช้ {data.taxonomy_source} เพื่อจัดครูเข้า {numberFormat(data.overview.official_major_groups)} กลุ่มวิชา และ {numberFormat(data.overview.official_subjects)} วิชาเอกย่อย</span></li>
+                  <li><strong>ผลโมเดลเดิม</strong><span>ใช้ข้อมูลวิเคราะห์คณิตศาสตร์เดิมเป็นตัวช่วยจัดลำดับตรวจสอบ ไม่ใช่ผลตัดสินขั้นสุดท้าย</span></li>
+                </ol>
               </>
             )}
             {explainTopic === "visual" && (
               <>
                 <h2>อ่านกราฟ 3 มิติอย่างไร</h2>
-                <p>
-                  กราฟนี้ใช้ดูว่าแต่ละพื้นที่ยังไม่พบครูวิชาเอกย่อยใดมากน้อยแค่ไหน โดยเริ่มจากเลือกกลุ่มวิชา เช่น
-                  วิทยาศาสตร์และเทคโนโลยี จากนั้นติ๊กพื้นที่ที่ต้องการเทียบกัน ระบบจะแสดงวิชาเอกย่อยที่ควรติดตามก่อน
-                  เช่น เคมี ฟิสิกส์ ชีววิทยา เทคโนโลยี หรือคอมพิวเตอร์
-                </p>
-                <p>
-                  แต่ละกลุ่มแท่งคือ 1 วิชาเอกย่อย ส่วนสีของแท่งคือพื้นที่ที่เลือกไว้ ความสูงของแท่งคือจำนวนโรงเรียนในพื้นที่นั้น
-                  ที่ยังไม่พบครูวิชาเอกย่อยนั้นในข้อมูลครู ตัวเลขบนแท่งคือจำนวนโรงเรียน และข้อความใต้แท่งบอกจำนวนครูที่พบในพื้นที่นั้น
-                </p>
-                <p>
-                  ถ้าแท่งของพื้นที่ใดสูงกว่า แปลว่าพื้นที่นั้นมีโรงเรียนที่ควรตรวจสอบต่อในวิชาเอกย่อยนั้นมากกว่า กดที่แท่งได้เลยเพื่อไปดูรายชื่อโรงเรียน
-                  ที่เกี่ยวข้อง พร้อมตัวกรองพื้นที่และวิชาเอกย่อยนั้น
-                </p>
-                <p>
-                  Pie Chart รายพื้นที่ใช้โรงเรียนในเขตที่เลือกเป็นฐาน: วงแรกบอกสถานะครบ/ขาดบางวิชาของกลุ่มวิชาที่เลือก
-                  วงที่สองบอกว่าวิชาย่อยใดเป็นสัดส่วนของช่องว่างมากที่สุด และวงที่สามบอกสัดส่วนจำนวนครูจริงตามกลุ่มวิชาในพื้นที่นั้น
-                </p>
-                <p>
-                  การคำนวณช่องว่างรายวิชาใช้ baseline ว่า หากโรงเรียนมีข้อมูลครูแล้ว แต่ไม่มีครูในวิชาเอกย่อยนั้นเลย จะนับเป็น 1 ช่องว่างที่ควรติดตาม
-                  วิธีนี้ใช้เพื่อชี้เป้าเบื้องต้น ไม่ใช่เกณฑ์จัดสรรอัตรากำลังขั้นสุดท้าย
-                </p>
+                <ol className="step-list">
+                  <li><strong>เลือกกลุ่มวิชา</strong><span>เช่น วิทยาศาสตร์และเทคโนโลยี หรือศิลปศึกษา</span></li>
+                  <li><strong>เลือกพื้นที่ที่ต้องการเทียบ</strong><span>สีของแท่งหมายถึงเขตพื้นที่แต่ละเขต</span></li>
+                  <li><strong>ดูความสูงของแท่ง</strong><span>แท่งสูงแปลว่าพื้นที่นั้นมีโรงเรียนที่ยังไม่พบครูวิชาเอกย่อยนั้นมากกว่า</span></li>
+                  <li><strong>กดแท่งเพื่อดูรายละเอียด</strong><span>ระบบจะพาไปหน้ารายโรงเรียน พร้อมตัวกรองพื้นที่และวิชาเอกย่อยนั้น</span></li>
+                  <li><strong>อ่าน Pie Chart ประกอบ</strong><span>วงแรกดูสถานะโรงเรียน วงที่สองดูวิชาที่ขาด วงที่สามดูโครงสร้างจำนวนครู</span></li>
+                </ol>
               </>
             )}
             {explainTopic === "export" && (
               <>
                 <h2>ส่งออกไปใช้ต่ออย่างไร</h2>
-                <p>
-                  ปุ่ม CSV จะได้ไฟล์ข้อความเปิดต่อใน Excel, Google Sheets, BI tools หรือระบบวิเคราะห์อื่นได้ ส่วนปุ่ม Excel จะได้ไฟล์ `.xls`
-                  แบบตารางที่ Excel เปิดได้ทันทีโดยคงหัวคอลัมน์ภาษาไทยไว้
-                </p>
-                <p>
-                  ปุ่มภาพ PNG สร้างภาพจากข้อมูลกราฟชุดปัจจุบัน เหมาะสำหรับนำไปใส่รายงาน สไลด์ หรือเอกสารประกอบการประชุม
-                </p>
+                <ol className="step-list">
+                  <li><strong>ภาพ PNG</strong><span>บันทึกกราฟชุดที่กำลังดู เหมาะสำหรับใส่รายงาน สไลด์ หรือเอกสารประชุม</span></li>
+                  <li><strong>CSV</strong><span>ได้ไฟล์ตารางสำหรับเปิดใน Excel, Google Sheets, BI tools หรือระบบวิเคราะห์อื่น</span></li>
+                  <li><strong>Excel</strong><span>ได้ไฟล์ `.xls` ที่เปิดใน Excel ได้ทันที และยังคงหัวคอลัมน์ภาษาไทยไว้</span></li>
+                  <li><strong>CSV รายโรงเรียน</strong><span>ส่งออกตามตัวกรองปัจจุบัน พร้อมสถานะครบ/ขาดบางวิชา และวิชาที่ควรติดตาม</span></li>
+                </ol>
               </>
             )}
           </section>
@@ -1253,8 +1274,14 @@ export default function Home() {
       )}
 
       {selectedSchool && (
-        <div className="modal-backdrop" role="presentation" onClick={() => setSelectedSchoolCode(null)}>
-          <section className="detail-modal" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+        <div
+          className="modal-backdrop"
+          role="presentation"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setSelectedSchoolCode(null);
+          }}
+        >
+          <section className="detail-modal" role="dialog" aria-modal="true">
             <button className="modal-close" type="button" onClick={() => setSelectedSchoolCode(null)}>ปิด</button>
             <div className="detail-head">
               <div>
