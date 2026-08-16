@@ -8,7 +8,7 @@ Prototype web dashboard for analyzing teacher major coverage across the target e
 - Teacher counts, covered subjects, and shortage signals by subject group, area, and school
 - School-level drilldowns with privacy-preserving teacher reference IDs
 - 3D comparison chart, pie charts, supporting tables, and CSV/Excel/PNG export
-- Existing math-risk model fields used only as a prioritization aid, not as final staffing decisions
+- Risk indicators used only as a prioritization aid, not as final staffing decisions
 
 The web app reads its deployed dashboard data from `public/dashboard-data.json`, which is generated from the transformed Excel analysis files in the local project workflow.
 
